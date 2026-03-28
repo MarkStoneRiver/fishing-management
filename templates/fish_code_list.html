@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>魚種コード一覧</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            display: block;
+            width: 250px;
+            margin: 15px auto;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #f0f0f0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: center;
+        }
+        .scrollable {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .edit-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .edit-button:hover {
+            background-color: #f0f0f0;
+        }
+        .delete-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #ff4444;
+            background-color: #fff;
+            text-decoration: none;
+            color: #ff4444;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .delete-button:hover {
+            background-color: #ffeeee;
+        }
+        .top-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .top-link:hover {
+            background-color: #0b7dda;
+        }
+        .new-button {
+            display: inline-flex;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        .new-button:hover {
+            background-color: #f0f0f0;
+        }
+        /* ナビゲーションヘッダーのスタイル */
+        .nav-header {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 15px;
+            text-decoration: none;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .nav-btn:hover {
+            background-color: #0b7dda;
+        }
+        .nav-btn.active {
+            background-color: #0b7dda;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションヘッダー -->
+    <header>
+        <a href="/" class="nav-btn">トップ</a>
+        <a href="/fish_receipt/" class="nav-btn">伝票登録</a>
+        <a href="/past_landings/" class="nav-btn">過去水揚げ</a>
+        <a href="/data_compare/" class="nav-btn">売買仕切書比較</a>
+        <a href="/fish_code_list" class="nav-btn active">魚種コード</a>
+        <a href="/gyoba" class="nav-btn">漁場名</a>
+        <a href="/buyers" class="nav-btn">買受人</a>
+    </header>
+    <h2>魚種コード一覧</h2>
+    <div class="container">
+        
+        <a href="/fish_code" class="button">新規</a>
+        <div class="scrollable">
+            <table>
+                <thead>
+                    <tr>
+                        <th>コード</th>
+                        <th>魚種</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fish in fish_types %}
+                    <tr>
+                        <td>{{ fish[0] }}</td>
+                        <td>{{ fish[1] }}</td>
+                        <td>
+                            <a href="/fish_code?edit_code={{ fish[0] }}" class="edit-button">編集</a>
+                            <form action="/fish_code_delete" method="post" style="display: inline;">
+                                <input type="hidden" name="code" value="{{ fish[0] }}">
+                                <button type="submit" class="delete-button" onclick="return confirm('本当に削除しますか？')">削除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

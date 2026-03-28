@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データ比較</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            margin: 0 auto;
+            width: 80%;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .filter-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            min-width: 80px;
+            text-align: right;
+        }
+        .input-group input, .input-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+        .submit-btn {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .no-data {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+        .month-picker {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .data-container {
+            margin-top: 30px;
+            display: none;
+        }
+        /* ナビゲーションヘッダーのスタイル */
+        .nav-header {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 15px;
+            text-decoration: none;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .nav-btn:hover {
+            background-color: #0b7dda;
+        }
+        .nav-btn.active {
+            background-color: #0b7dda;
+            font-weight: bold;
+        }
+        .fish-type-display {
+            background-color: #f0f0f0;
+        }
+        /* 表の数値セル用スタイル */
+        .text-right {
+            text-align: right;
+        }
+        /* 合計行のスタイル */
+        tfoot td {
+            text-align: right;
+            font-weight: bold;
+        }
+        /* 合計金額セルのスタイル */
+        #total-amount {
+            text-align: right;
+            font-weight: bold;
+        }
+        /* フォーム部分のコンテナサイズ */
+        #compare-form-container {
+            width: 30%;
+            margin: 0 auto;
+        }
+        /* データ表示部分は元の幅を維持 */
+        #data-display {
+            width: 80%;
+            margin-top: 40px; /* フォーム部分との間隔を広げる */
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションヘッダー -->
+    <header>
+        <a href="/" class="nav-btn">トップ</a>
+        <a href="/fish_receipt/" class="nav-btn">伝票登録</a>
+        <a href="/past_landings/" class="nav-btn">過去水揚げ</a>
+        <a href="/data_compare/" class="nav-btn active">売買仕切書比較</a>
+        <a href="/fish_code_list" class="nav-btn">魚種コード</a>
+        <a href="/gyoba" class="nav-btn">漁場名</a>
+        <a href="/buyers" class="nav-btn">買受人</a>
+    </header>
+    <h2>売買仕切比較画面</h2>  
+    
+    <div id="compare-form-container" class="container">
+        <form id="compare-form" action="/data_compare/" method="get">
+            <div class="input-group">
+                <label for="month">荷受月:</label>
+                <input type="month" id="month" name="target_month" class="month-picker" required value="{{ target_month }}">
+            </div>
+            <div class="input-group">
+                <label for="fisherman">漁業者名:</label>
+                <input type="text" id="fisherman" name="fisherman" value="{{ fisherman }}" readonly class="fish-type-display">
+            </div>
+            <button type="submit" class="submit-btn">検索</button>
+        </form>
+    </div>
+    
+    <div id="data-display" class="container" {% if not results %}style="display:none"{% endif %}>
+        <table>
+            <thead>
+                <tr>
+                    <th>水揚げ日</th>
+                    <th>魚種コード</th>
+                    <th>規格（品名）</th>
+                    <th>容器</th>
+                    <th>個数</th>
+                    <th>数量</th>
+                    <th>単価</th>
+                    <th>金額</th>
+                    <th>売先</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+                {% if results %}
+                {% for item in results %}
+                <tr>
+                    <td>{{ item.receipt_date }}</td>
+                    <td>{{ item.fish_code|fish_code_format }}</td>
+                    <td>{{ item.display_name }}</td>
+                    <td>{{ item.container_name }}</td>
+                    <td class="text-right">{{ item.quantity }}</td>
+                    <td class="text-right">{{ item.weight }}</td>
+                    <td class="text-right">{{ item.unit_price|currency }}</td>
+                    <td class="text-right">{{ item.amount|currency }}</td>
+                    <td>{{ item.buyer_code }} - {{ item.buyer_name }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="9" class="no-data">該当するデータはありません</td>
+                </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="7" style="text-align: right;"><strong>合計:</strong></td>
+                    <td id="total-amount" class="text-right">{{ total_amount|currency }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <script>
+        // ページ読み込み時の処理
+        document.addEventListener('DOMContentLoaded', function() {
+            // 漁業者名がない場合、初回アクセス時に自動で検索を実行
+            if (document.getElementById('fisherman').value) {
+                document.getElementById('data-display').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

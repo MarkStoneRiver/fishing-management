@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>買受人マスタ管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: block;
+            width: 250px;
+            margin: 15px auto;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #f0f0f0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .form-container {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            width: 50%;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+        }
+        .scrollable {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .edit-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .edit-button:hover {
+            background-color: #f0f0f0;
+        }
+        .delete-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #ff4444;
+            background-color: #fff;
+            text-decoration: none;
+            color: #ff4444;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .delete-button:hover {
+            background-color: #ffeeee;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #0b7dda;
+        }
+        .success-message {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .error-message {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        /* ナビゲーションヘッダーのスタイル */
+        .nav-header {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 15px;
+            text-decoration: none;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .nav-btn:hover {
+            background-color: #0b7dda;
+        }
+        .nav-btn.active {
+            background-color: #0b7dda;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションヘッダー -->
+    <header>
+        <a href="/" class="nav-btn">トップ</a>
+        <a href="/fish_receipt/" class="nav-btn">伝票登録</a>
+        <a href="/past_landings/" class="nav-btn">過去水揚げ</a>
+        <a href="/data_compare/" class="nav-btn">売買仕切書比較</a>
+        <a href="/fish_code_list" class="nav-btn">魚種コード</a>
+        <a href="/gyoba" class="nav-btn">漁場名</a>
+        <a href="/buyers" class="nav-btn active">買受人</a>
+    </header>
+    <h2>買受人マスタ管理</h2>
+    
+    {% if message %}
+    <div class="{% if error %}error-message{% else %}success-message{% endif %}">
+        {{ message }}
+    </div>
+    {% endif %}
+    
+    <div class="container">
+        {% if edit_buyer %}
+        <div class="form-container">
+            <h3>買受人情報編集</h3>
+            <form method="post" action="/buyers/update/{{ edit_buyer.id }}">
+                <div class="form-group">
+                    <label for="code">コード:</label>
+                    <input type="number" id="code" name="code" value="{{ edit_buyer.code }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">買受人名:</label>
+                    <input type="text" id="name" name="name" value="{{ edit_buyer.name }}" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">更新</button>
+                    <a href="/buyers" class="btn btn-secondary">キャンセル</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        {% if new_buyer %}
+        <div class="form-container">
+            <h3>新規買受人登録</h3>
+            <form method="post" action="/buyers">
+                <div class="form-group">
+                    <label for="code">コード:</label>
+                    <input type="number" id="code" name="code" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">買受人名:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">登録</button>
+                    <a href="/buyers" class="btn btn-secondary">キャンセル</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <a href="/buyers/new" class="button">新規</a>
+        {% endif %}
+        {% endif %}
+        
+        <div class="scrollable">
+            <table>
+                <thead>
+                    <tr>
+                        <th>コード</th>
+                        <th>買受人名</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for buyer in buyers %}
+                    <tr>
+                        <td>{{ buyer.code }}</td>
+                        <td>{{ buyer.name }}</td>
+                        <td>
+                            <a href="/buyers/edit/{{ buyer.id }}" class="edit-button">編集</a>
+                            <a href="#" onclick="confirmDelete('{{ buyer.id }}', '{{ buyer.name }}')" class="delete-button">削除</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function confirmDelete(id, name) {
+            if (confirm(`買受人「${name}」を削除しますか？`)) {
+                window.location.href = `/buyers/delete/${id}`;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,27 @@
+# Built-in Git Ignore
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Databases
+*.db
+*.sqlite3
+
+# Environment Variables
+.env
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# IDEs
+.vscode/
+.idea/
+
+# Static Files (Uploads)
+static/uploads/*
+!static/uploads/.gitkeep

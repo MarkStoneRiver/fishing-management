@@ -1,0 +1,12 @@
+services:
+  gyokaku:
+    build: .
+    container_name: gyokaku_app
+    restart: always
+    ports:
+      - "3002:5000"
+    volumes:
+      # DBファイルをNASマウントポイントに永続化
+      - /mnt/nas_data/fishery/data:/data
+    env_file:
+      - .env

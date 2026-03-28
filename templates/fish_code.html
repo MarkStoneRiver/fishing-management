@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>魚種コード登録</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f5f5f5;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-container {
+            width: 300px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .form-group label {
+            display: inline-block;
+            width: 100px;
+            text-align: right;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 150px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .submit-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .submit-button:hover {
+            background-color: #f0f0f0;
+        }
+        .cancel-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #ff4444;
+            background-color: #fff;
+            text-decoration: none;
+            color: #ff4444;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .cancel-button:hover {
+            background-color: #ffeeee;
+        }
+        .error {
+            color: #f44336;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .error-message {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        input.error {
+            border-color: #f44336;
+        }
+        .top-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .top-link:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <h2>{% if fish_type %}魚種コード編集{% else %}魚種コード登録{% endif %}</h2>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    
+    <a href="/" class="top-link">トップページ</a>
+    
+    <div class="form-container">
+        <form method="post">
+            <div class="form-group">
+                <label for="code">魚種コード:</label>
+                <input type="text" id="code" name="code" value="{{ fish_type[0] if fish_type else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="name">魚種名:</label>
+                <input type="text" id="name" name="name" value="{{ fish_type[1] if fish_type else '' }}" required>
+            </div>
+            {% if edit_code %}
+            <input type="hidden" name="edit_code" value="{{ edit_code }}">
+            {% endif %}
+            <div class="button-container">
+                <button type="submit" class="submit-button">{% if fish_type %}更新{% else %}登録{% endif %}</button>
+                <button type="button" class="cancel-button" onclick="location.href='/fish_code_list'">キャンセル</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html> 

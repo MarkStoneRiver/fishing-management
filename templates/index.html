@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>漁獲管理システム</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 {
+            margin-bottom: 40px;
+        }
+        .button {
+            display: block;
+            width: 250px;
+            margin: 15px auto;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+        }
+        .button:hover {
+            background-color: #f0f0f0;
+        }
+        .small-button {
+            display: block;
+            width: 180px;
+            margin: 15px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+        }
+        .small-button:hover {
+            background-color: #f0f0f0;
+        }
+        .bottom-buttons {
+            margin-top: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>漁獲管理システム</h1>
+    {% if company_name %}
+    <h2>登録された漁場名: {{ company_name }}</h2>
+    {% endif %}
+
+    <div class="button-container">
+        <a href="/fish_receipt/" class="button">伝票登録</a>
+        <a href="/past_landings/" class="button">過去水揚げ</a>
+        <a href="/data_compare/" class="button">売買仕切書比較画面</a>
+    </div>
+
+    
+
+    <div class="bottom-buttons">
+        <a href="/fish_code_list" class="button">魚種コード</a>
+        <a href="/gyoba" class="button">漁場名</a>
+        <a href="/buyers" class="button">買受人</a>
+    </div>
+</body>
+</html>

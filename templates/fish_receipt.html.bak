@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>鮮魚受入伝票 登録</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .header-section {
+            width: 25%;
+            margin: 0 auto 30px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header-section div {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-section label {
+            display: inline-block;
+            width: 100px;
+            text-align: right;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .header-section input {
+            width: 150px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .header-section input[readonly] {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .date-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-section input[type="date"] {
+            width: 130px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .date-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff !important;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .date-button:hover {
+            background-color: #f0f0f0 !important;
+        }
+        .detail-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .submit-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff;
+            text-decoration: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .submit-button:hover {
+            background-color: #f0f0f0;
+        }
+        .submit-button.hidden {
+            display: none;
+        }
+        .cancel-button {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #ff4444;
+            background-color: #fff;
+            text-decoration: none;
+            color: #ff4444;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .cancel-button:hover {
+            background-color: #ffeeee;
+        }
+        .add-row-btn {
+            display: inline-block;
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 2px solid #333;
+            background-color: #fff !important;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .add-row-btn:hover {
+            background-color: #f0f0f0 !important;
+        }
+        .error {
+            color: #f44336;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .error-message {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        input.error {
+            border-color: #f44336;
+        }
+        .top-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .top-link:hover {
+            background-color: #0b7dda;
+        }
+        .success {
+            color: #4CAF50;
+            background-color: #E8F5E9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .receipt-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .receipt-info p {
+            margin: 5px 0;
+        }
+        
+        .receipt-info .label {
+            font-weight: bold;
+            display: inline-block;
+            width: 100px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>鮮魚受入伝票 登録</h2>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    
+    {% if success %}
+    <div class="success">登録しました</div>
+    {% endif %}
+    
+    <a href="/" class="top-link">トップページ</a>
+    
+    <div class="form-container">
+        <form method="post" id="receipt-form">
+            {% if edit_mode %}
+            <div class="receipt-info">
+                <p><span class="label">伝票番号:</span> {{ receipt_no }}</p>
+                <p><span class="label">合計重量:</span> {{ total_weight }} kg</p>
+            </div>
+            <input type="hidden" name="receipt_id" value="{{ receipt_id }}">
+            {% endif %}
+            
+            <div class="header-section">
+                <div>
+                    <label>荷受日:</label>
+                    <div class="date-input-container">
+                        <input type="date" name="receipt_date" id="receipt_date" value="{{ receipt_date if edit_mode else today }}" required>
+                        <button type="button" class="date-button" onclick="setPreviousDay()">前日</button>
+                        <button type="button" class="date-button" style="width: 80px;" onclick="searchByDate()">検索</button>
+                    </div>
+                </div>
+                <div>
+                    <label>漁業者名:</label>
+                    <input type="text" name="fisherman_name" value="{{ fisherman_name }}" readonly>
+                </div>
+            </div>
+            
+            <table id="detail-table">
+                <thead>
+                    <tr>
+                        <th>魚種コード</th>
+                        <th>魚種名(補足)</th>
+                        <th>容器<span style="display: block; font-size: 10px; font-weight: normal; display: inline;">　※タンクは0</span></th>
+                        <th>個(尾)数</th>
+                        <th>数量</th>
+                        <th>単価</th>
+                        <th>売先</th>
+                    </tr>
+                </thead>
+                <tbody id="detail-rows">
+                    {% if edit_mode and details %}
+                        {% for detail in details %}
+                        <tr>
+                            <td><input type="text" name="fish_code_{{ loop.index }}" value="{{ detail[0] }}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="fish_name_{{ loop.index }}" value="{{ detail[1] }}"></td>
+                            <td><input type="text" name="container_{{ loop.index }}" value="{{ detail[2] }}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="quantity_{{ loop.index }}" value="{{ detail[3] }}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                            <td><input type="text" name="weight_{{ loop.index }}" value="{{ detail[4] }}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                            <td><input type="text" name="unit_price_{{ loop.index }}" value="{{ detail[5] }}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="destination_{{ loop.index }}" value="{{ detail[6] }}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td><input type="text" name="fish_code_1" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="fish_name_1"></td>
+                            <td><input type="text" name="container_1" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="quantity_1" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                            <td><input type="text" name="weight_1" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                            <td><input type="text" name="unit_price_1" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                            <td><input type="text" name="destination_1" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            
+            <div class="button-container">
+                <button type="button" class="add-row-btn" onclick="addRow()">行を追加</button>
+            </div>
+            
+            <div class="button-container">
+                <button type="submit" class="submit-button">{% if edit_mode %}更新{% else %}登録{% endif %}</button>
+                <button type="button" class="cancel-button" onclick="location.href='/'">キャンセル</button>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        function setPreviousDay() {
+            const dateInput = document.getElementById('receipt_date');
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() - 1);
+            dateInput.value = currentDate.toISOString().split('T')[0];
+        }
+
+        function searchByDate() {
+            const dateInput = document.getElementById('receipt_date');
+            if (dateInput.value) {
+                window.location.href = `/fish_receipt/?receipt_date=${dateInput.value}`;
+            } else {
+                alert('荷受日を選択してください');
+            }
+        }
+
+        function checkExistingData(date) {
+            // この関数は使用されなくなりましたが、互換性のために残しておきます
+            console.log('Date selected:', date);
+        }
+
+        function validateNumber(input, fieldName) {
+            const value = input.value;
+            const errorMessage = input.nextElementSibling;
+            
+            // 空の場合はエラーを表示しない
+            if (value === '') {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+                return;
+            }
+            
+            // 数字以外が含まれているかチェック
+            if (!/^\d+$/.test(value)) {
+                input.classList.add('error');
+                errorMessage && (errorMessage.style.display = 'block');
+            } else {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+            }
+        }
+        
+        function validateDecimal(input, fieldName) {
+            const value = input.value;
+            const errorMessage = input.nextElementSibling;
+            
+            // 空の場合はエラーを表示しない
+            if (value === '') {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+                return;
+            }
+            
+            // 小数点を含む数値かチェック
+            if (!/^(\d+(\.\d+)?)$/.test(value)) {
+                input.classList.add('error');
+                errorMessage && (errorMessage.style.display = 'block');
+            } else {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+            }
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('detail-rows');
+            const rowCount = tbody.rows.length + 1;
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td><input type="text" name="fish_code_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td><input type="text" name="fish_name_${rowCount}"></td>
+                <td><input type="text" name="container_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td><input type="text" name="quantity_${rowCount}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                <td><input type="text" name="weight_${rowCount}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                <td><input type="text" name="unit_price_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td><input type="text" name="destination_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+            `;
+            
+            tbody.appendChild(row);
+            
+            // 新しい行の最初の入力欄にフォーカスを移動
+            const firstInput = row.querySelector('input');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }
+
+        function updateFishName(select) {
+            const row = select.closest('tr');
+            const nameInput = row.querySelector('input[name="fish_name[]"]');
+            const selectedOption = select.options[select.selectedIndex];
+            nameInput.value = selectedOption.dataset.name || '';
+        }
+
+        function validateFishCode(input) {
+            const value = input.value;
+            const errorMessage = input.nextElementSibling;
+            const fishCodeError = input.nextElementSibling ? input.nextElementSibling.nextElementSibling : null;
+            
+            // 空の場合はエラーを表示しない
+            if (value === '') {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+                fishCodeError && (fishCodeError.style.display = 'none');
+                return;
+            }
+            
+            // 数字以外が含まれているかチェック
+            if (!/^\d+$/.test(value)) {
+                input.classList.add('error');
+                errorMessage && (errorMessage.style.display = 'block');
+                fishCodeError && (fishCodeError.style.display = 'none');
+            } else {
+                input.classList.remove('error');
+                errorMessage && (errorMessage.style.display = 'none');
+                
+                // 魚種コードの存在チェック
+                fetch(`/check_fish_code?code=${value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.exists) {
+                            input.classList.add('error');
+                            fishCodeError && (fishCodeError.style.display = 'block');
+                        } else {
+                            input.classList.remove('error');
+                            fishCodeError && (fishCodeError.style.display = 'none');
+                        }
+                    });
+            }
+        }
+
+        // Enterキーを押したときの処理を変更
+        document.addEventListener('DOMContentLoaded', function() {
+            // フォーム内のすべての入力フィールドにイベントリスナーを追加
+            const inputFields = document.querySelectorAll('input[type="text"]');
+            
+            inputFields.forEach(function(input) {
+                input.addEventListener('keydown', function(e) {
+                    // Enterキーが押されたとき
+                    if (e.key === 'Enter') {
+                        // デフォルトの送信動作をキャンセル
+                        e.preventDefault();
+                        
+                        // 現在の行が最後の行か確認
+                        const currentRow = input.closest('tr');
+                        const lastRow = document.querySelector('#detail-rows tr:last-child');
+                        
+                        if (currentRow === lastRow) {
+                            // 最後の行なら新しい行を追加
+                            addRow();
+                        } else {
+                            // 次の行の同じ位置の入力欄にフォーカスを移動
+                            const cellIndex = Array.from(currentRow.cells).findIndex(cell => cell.contains(input));
+                            const nextRow = currentRow.nextElementSibling;
+                            if (nextRow) {
+                                const nextInput = nextRow.cells[cellIndex].querySelector('input');
+                                if (nextInput) {
+                                    nextInput.focus();
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // 新しい行が追加されたときにも同様のイベントリスナーを追加するためのオブザーバー
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeName === 'TR') {
+                                const inputs = node.querySelectorAll('input[type="text"]');
+                                inputs.forEach(function(input) {
+                                    input.addEventListener('keydown', function(e) {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            
+                                            const currentRow = input.closest('tr');
+                                            const lastRow = document.querySelector('#detail-rows tr:last-child');
+                                            
+                                            if (currentRow === lastRow) {
+                                                addRow();
+                                            } else {
+                                                const cellIndex = Array.from(currentRow.cells).findIndex(cell => cell.contains(input));
+                                                const nextRow = currentRow.nextElementSibling;
+                                                if (nextRow) {
+                                                    const nextInput = nextRow.cells[cellIndex].querySelector('input');
+                                                    if (nextInput) {
+                                                        nextInput.focus();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // 監視対象の設定
+            const targetNode = document.getElementById('detail-rows');
+            const config = { childList: true };
+            observer.observe(targetNode, config);
+            
+            // フォーム送信ボタンのクリックイベントを保持
+            const form = document.getElementById('receipt-form');
+            const submitButton = document.querySelector('.submit-button');
+            
+            // 送信ボタンをクリックしたときだけフォームを送信
+            submitButton.addEventListener('click', function(e) {
+                // バリデーションチェックを実行
+                validateForm(e);
+            });
+            
+            // フォームのデフォルト送信を無効化
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // 送信ボタンがクリックされたときだけ送信処理が行われるようになります
+            });
+        });
+
+        // フォーム送信時のバリデーション
+        function validateForm(e) {
+            let hasError = false;
+            let errorMessage = '';
+            const form = document.getElementById('receipt-form');
+
+            // 必須項目のチェック
+            const dateInput = document.getElementById('receipt_date');
+            if (!dateInput.value) {
+                errorMessage += '・荷受日を入力してください\n';
+                hasError = true;
+            }
+
+            // 明細行のチェック
+            const fishCodeInputs = document.querySelectorAll('input[name^="fish_code_"]');
+            const fishNameInputs = document.querySelectorAll('input[name^="fish_name_"]');
+            const containerInputs = document.querySelectorAll('input[name^="container_"]');
+            const quantityInputs = document.querySelectorAll('input[name^="quantity_"]');
+            const weightInputs = document.querySelectorAll('input[name^="weight_"]');
+            const unitPriceInputs = document.querySelectorAll('input[name^="unit_price_"]');
+            const destinationInputs = document.querySelectorAll('input[name^="destination_"]');
+
+            // 有効な行があるかのフラグ
+            let hasValidRow = false;
+            
+            // 各行をチェック
+            for (let i = 0; i < fishCodeInputs.length; i++) {
+                // 行内の入力状態をチェック
+                const hasCode = !!fishCodeInputs[i].value;
+                const hasName = !!fishNameInputs[i].value;
+                const hasContainer = !!containerInputs[i].value;
+                const hasQuantity = !!quantityInputs[i].value;
+                const hasWeight = !!weightInputs[i].value;
+                const hasPrice = !!unitPriceInputs[i].value;
+                const hasDestination = !!destinationInputs[i].value;
+                
+                // 行内のフィールドがすべて空かどうかチェック
+                const isRowEmpty = !hasCode && !hasName && !hasContainer && !hasQuantity && !hasWeight && !hasPrice && !hasDestination;
+                
+                // 行内に一部だけ入力されているかチェック
+                const isRowPartiallyFilled = !isRowEmpty && !(hasCode && hasName && hasContainer && hasQuantity && hasWeight && hasPrice && hasDestination);
+                
+                // 行が完全に入力されているかチェック
+                const isRowComplete = hasCode && hasName && hasContainer && hasQuantity && hasWeight && hasPrice && hasDestination;
+                
+                // 完全に空の行はスキップ
+                if (isRowEmpty) {
+                    continue;
+                }
+                
+                // 一部だけ入力されている行はエラー
+                if (isRowPartiallyFilled) {
+                    // 不足している項目を特定してエラーメッセージに追加
+                    if (!hasCode) {
+                        errorMessage += `・${i+1}行目の魚種コードを入力してください\n`;
+                    }
+                    if (!hasName) {
+                        errorMessage += `・${i+1}行目の魚種名(補足)を入力してください\n`;
+                    }
+                    if (!hasContainer) {
+                        errorMessage += `・${i+1}行目の容器を入力してください\n`;
+                    }
+                    if (!hasQuantity) {
+                        errorMessage += `・${i+1}行目の個(尾)数を入力してください\n`;
+                    }
+                    if (!hasWeight) {
+                        errorMessage += `・${i+1}行目の重量を入力してください\n`;
+                    }
+                    if (!hasPrice) {
+                        errorMessage += `・${i+1}行目の単価を入力してください\n`;
+                    }
+                    if (!hasDestination) {
+                        errorMessage += `・${i+1}行目の売先を入力してください\n`;
+                    }
+                    hasError = true;
+                }
+                
+                // 完全に入力されている行があれば有効な行として記録
+                if (isRowComplete) {
+                    hasValidRow = true;
+                }
+            }
+
+            // 有効な行が一つもない場合はエラー
+            if (!hasValidRow) {
+                errorMessage += '・少なくとも1行の完全な明細を入力してください\n';
+                hasError = true;
+            }
+
+            // 数字のバリデーション
+            const numberInputs = document.querySelectorAll('input[name^="container_"], input[name^="unit_price_"], input[name^="destination_"]');
+            numberInputs.forEach(input => {
+                if (input.value && !/^\d+$/.test(input.value)) {
+                    input.classList.add('error');
+                    if (input.nextElementSibling) {
+                        input.nextElementSibling.style.display = 'block';
+                    }
+                    hasError = true;
+                }
+            });
+            
+            // 小数点を含む数値のバリデーション
+            const decimalInputs = document.querySelectorAll('input[name^="quantity_"], input[name^="weight_"]');
+            decimalInputs.forEach(input => {
+                if (input.value && !/^(\d+(\.\d+)?)$/.test(input.value)) {
+                    input.classList.add('error');
+                    if (input.nextElementSibling) {
+                        input.nextElementSibling.style.display = 'block';
+                    }
+                    hasError = true;
+                }
+            });
+
+            if (hasError) {
+                alert('以下の項目を確認してください：\n\n' + errorMessage);
+                return false;
+            } else {
+                // エラーがなければフォームを送信
+                form.submit();
+            }
+        }
+
+        // 成功メッセージを3秒後に消す
+        document.addEventListener('DOMContentLoaded', function() {
+            const successMessage = document.querySelector('.success');
+            if (successMessage) {
+                setTimeout(function() {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }
+            
+            // URLから日付パラメータを取得して設定
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get('receipt_date');
+            
+            if (dateParam) {
+                // 日付パラメータがある場合は、その日付を日付入力欄に設定
+                const dateInput = document.getElementById('receipt_date');
+                dateInput.value = dateParam;
+            }
+        });
+    </script>
+</body>
+</html>
