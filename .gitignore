@@ -21,6 +21,7 @@ docker-compose.override.yml
 # IDEs
 .vscode/
 .idea/
+.claude/
 
 # Static Files (Uploads)
 static/uploads/*

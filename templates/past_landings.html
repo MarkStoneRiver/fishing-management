@@ -306,6 +306,7 @@
             </div>
             <div class="button-container">
                 <button type="submit" class="search-button">検索</button>
+                <a href="#" id="graph-link" class="search-button" style="margin-left: 10px;">グラフ</a>
             </div>
         </form>
     </div>
@@ -613,6 +614,21 @@
                     console.warn('開始日または終了日が指定されていません');
                 }
             }
+        });
+
+        // グラフボタンのクリックイベント
+        document.getElementById('graph-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            const select = document.getElementById('fish-code-select');
+            let fishCodeParams = '';
+            if (select.value) {
+                fishCodeParams = `&fish_code=${select.value}`;
+            }
+
+            window.location.href = `/fish_graph?start_date=${startDate}&end_date=${endDate}${fishCodeParams}`;
         });
     </script>
 </body>
