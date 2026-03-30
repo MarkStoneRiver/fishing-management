@@ -39,9 +39,20 @@ SCHEMA_DESC = """
 SQL_PROMPT_TEMPLATE = """{schema}
 
 ユーザーの質問に答えるためのSQLite用SELECT文を1つだけ生成してください。
+
+【必須ルール】
 - SELECT文のみ生成してください（INSERT/UPDATE/DELETEは禁止）
 - コードブロック（```sql ... ``` や ``` ... ```）で囲んでください
 - SQL以外の説明文は不要です
+
+【日付処理ルール（SQLite専用）】
+- DATE_PART関数は使用禁止。日付処理は必ずstrftime関数を使うこと
+- 「昨年」= strftime('%Y', date('now', '-1 year'))
+- 「今年」= strftime('%Y', 'now')
+- 「先月」= strftime('%Y-%m', date('now', '-1 month'))
+- 「今月」= strftime('%Y-%m', 'now')
+- 年の比較例: strftime('%Y', receipt_date) = strftime('%Y', date('now', '-1 year'))
+- 月の比較例: strftime('%Y-%m', receipt_date) = strftime('%Y-%m', 'now')
 
 質問: {question}
 """
