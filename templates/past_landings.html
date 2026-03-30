@@ -47,13 +47,48 @@
             width: 160px;
         }
         .filter-item select[multiple] {
-            width: 260px;
-            height: 160px;
+            width: 400px;
+            height: 280px;
+            font-size: 14px;
+        }
+        .fish-select-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .fish-search-input {
+            width: 400px;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .fish-search-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .fish-select-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 400px;
         }
         .fish-select-hint {
             font-size: 11px;
             color: #888;
-            margin-top: 4px;
+        }
+        .fish-clear-btn {
+            font-size: 12px;
+            padding: 3px 10px;
+            background: #fff;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #555;
+        }
+        .fish-clear-btn:hover {
+            background: #f0f0f0;
         }
         .button-container {
             display: flex;
@@ -299,15 +334,19 @@
                 </div>
             </div>
             
-            <div class="filter-item">
-                <label>魚種:</label>
-                <div>
+            <div class="filter-item" style="align-items: flex-start;">
+                <label style="padding-top: 8px;">魚種:</label>
+                <div class="fish-select-wrapper">
+                    <input type="text" id="fish-search" class="fish-search-input" placeholder="魚種名で絞り込み...">
                     <select name="fish_code" id="fish-code-select" multiple>
                         {% for code, name in fish_types %}
                         <option value="{{ code }}" {% if code in selected_fish_codes %}selected{% endif %}>{{ code }} - {{ name }}</option>
                         {% endfor %}
                     </select>
-                    <div class="fish-select-hint">Ctrl(Mac:⌘)+クリックで複数選択<br>未選択で全魚種を表示</div>
+                    <div class="fish-select-toolbar">
+                        <div class="fish-select-hint">Ctrl(Mac:⌘)+クリックで複数選択　未選択=全魚種</div>
+                        <button type="button" class="fish-clear-btn" id="fish-clear-btn">選択解除</button>
+                    </div>
                 </div>
             </div>
             <div class="date-shortcut-buttons">
@@ -377,6 +416,21 @@
             const startDateInput = document.querySelector('#start_date');
             const endDateInput = document.querySelector('#end_date');
             const fishCodeSelect = document.querySelector('#fish-code-select');
+            const fishSearch = document.querySelector('#fish-search');
+
+            // 魚種リストのインクリメンタル検索
+            fishSearch.addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                Array.from(fishCodeSelect.options).forEach(opt => {
+                    const match = opt.textContent.toLowerCase().includes(keyword);
+                    opt.style.display = match ? '' : 'none';
+                });
+            });
+
+            // 選択解除ボタン
+            document.getElementById('fish-clear-btn').addEventListener('click', function() {
+                Array.from(fishCodeSelect.options).forEach(opt => opt.selected = false);
+            });
             
             // カレンダー関連の変数
             const calendarDays = document.getElementById('calendarDays');
