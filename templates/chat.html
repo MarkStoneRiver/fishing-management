@@ -233,28 +233,18 @@
     margin-top: 4px;
   }
 
-  .typing-indicator {
-    display: flex;
-    gap: 4px;
-    padding: 12px 16px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    border-bottom-left-radius: 2px;
+  .bubble-thinking {
     align-self: flex-start;
-    width: fit-content;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-bottom-left-radius: 2px;
+    color: #888;
+    font-style: italic;
+    animation: thinking-pulse 1.4s ease-in-out infinite;
   }
-  .typing-indicator span {
-    width: 7px; height: 7px;
-    background: #aaa;
-    border-radius: 50%;
-    animation: bounce 1.2s infinite;
-  }
-  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-5px); }
+  @keyframes thinking-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
   }
 
   /* ── 空状態 ── */
@@ -680,19 +670,13 @@
     return div;
   }
 
-  function showTyping() {
+  function showThinking() {
     const div = document.createElement('div');
-    div.className = 'typing-indicator';
-    div.id = 'typing';
-    div.innerHTML = '<span></span><span></span><span></span>';
+    div.className = 'bubble bubble-thinking';
+    div.textContent = '考え中...🐟';
     chatLog.appendChild(div);
     scrollToBottom();
     return div;
-  }
-
-  function removeTyping() {
-    const t = document.getElementById('typing');
-    if (t) t.remove();
   }
 
   function scrollToBottom() {
@@ -716,7 +700,7 @@
     sendBtn.disabled = true;
     input.disabled = true;
 
-    const typing = showTyping();
+    const thinkingBubble = showThinking();
 
     try {
       const res = await fetch('/api/chat', {
@@ -729,29 +713,48 @@
         })
       });
       const data = await res.json();
-      removeTyping();
+
+      // 考え中バブルを回答内容で置き換え
+      thinkingBubble.className = 'bubble bubble-ai';
+      thinkingBubble.style.animation = '';
+      thinkingBubble.textContent = '';
 
       if (data.error) {
-        const errDiv = document.createElement('div');
-        errDiv.className = 'bubble bubble-error';
-        errDiv.textContent = data.error;
+        thinkingBubble.className = 'bubble bubble-error';
+        thinkingBubble.textContent = data.error;
         if (data.sql) {
           const label = document.createElement('div');
           label.className = 'sql-label';
           label.textContent = '生成されたSQL';
-          errDiv.appendChild(label);
+          thinkingBubble.appendChild(label);
           const sqlEl = document.createElement('div');
           sqlEl.className = 'sql-block';
           sqlEl.textContent = data.sql;
-          errDiv.appendChild(sqlEl);
+          thinkingBubble.appendChild(sqlEl);
         }
-        chatLog.appendChild(errDiv);
       } else {
-        appendAIBubble(data.answer, data.sql, data.row_count);
+        const answerEl = document.createElement('div');
+        answerEl.textContent = data.answer;
+        thinkingBubble.appendChild(answerEl);
+        if (data.sql) {
+          const label = document.createElement('div');
+          label.className = 'sql-label';
+          label.textContent = '実行したSQL';
+          thinkingBubble.appendChild(label);
+          const sqlEl = document.createElement('div');
+          sqlEl.className = 'sql-block';
+          sqlEl.textContent = data.sql;
+          thinkingBubble.appendChild(sqlEl);
+          const rc = document.createElement('div');
+          rc.className = 'row-count';
+          rc.textContent = `${data.row_count}件取得`;
+          thinkingBubble.appendChild(rc);
+        }
       }
     } catch (e) {
-      removeTyping();
-      appendBubble('通信エラーが発生しました。', 'error');
+      thinkingBubble.className = 'bubble bubble-error';
+      thinkingBubble.style.animation = '';
+      thinkingBubble.textContent = '通信エラーが発生しました。';
     }
 
     sendBtn.disabled = false;
