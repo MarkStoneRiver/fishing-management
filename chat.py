@@ -6,6 +6,7 @@ import sqlite3
 import urllib.request
 import urllib.error
 import json
+import uuid
 
 from flask import Blueprint, render_template, request, jsonify
 from db import DB_PATH, get_connection
@@ -59,6 +60,35 @@ SQL_PROMPT_TEMPLATE = """{schema}
   GROUP BY ft.name
   HAVING ft.name IN ('ときさけ', 'ぶり')
 
+【魚名の検索ルール】
+- 魚名の検索は完全一致ではなく部分一致（LIKE）を使用する
+- 例：「あきさけ」で検索する場合は frd.fish_name LIKE '%あきさけ%'
+- これにより「あきさけ（おす）」「あきさけ（めす）」なども含めて抽出できる
+
+【「キズ」の扱い】
+- 魚名に「キズ」または「きず」が含まれる場合は別グループとして集計する
+- SQLiteは日本語のUPPER/LOWERが効かないため、LIKEを2つORで繋げる
+- キズ判定条件：(frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%')
+- 正しい例:
+  SELECT
+      CASE
+          WHEN (frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%') THEN frd.fish_name
+          ELSE REPLACE(REPLACE(frd.fish_name, '（おす）', ''), '（めす）', '')
+      END AS fish_group,
+      CASE
+          WHEN (frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%') THEN 'キズあり'
+          ELSE 'キズなし'
+      END AS kizu_flag,
+      SUM(frd.unit_price * frd.weight) AS total_amount,
+      SUM(frd.weight) AS total_weight,
+      SUM(frd.quantity) AS total_quantity
+  FROM fish_receipts fr
+  JOIN fish_receipt_details frd ON fr.id = frd.receipt_id
+  WHERE frd.fish_name LIKE '%あきさけ%'
+  AND strftime('%Y', fr.receipt_date) = strftime('%Y', date('now', '-1 year'))
+  GROUP BY fish_group, kizu_flag
+  ORDER BY kizu_flag, fish_group
+
 【日付処理ルール（SQLite専用）】
 - DATE_PART関数は使用禁止。日付処理は必ずstrftime関数を使うこと
 - 「昨年」= strftime('%Y', date('now', '-1 year'))
@@ -104,12 +134,10 @@ def call_ollama(prompt: str) -> str:
 
 def extract_sql(text: str) -> str | None:
     """コードブロックからSQLを抽出する。"""
-    # ```sql ... ``` または ``` ... ``` を探す
     pattern = r"```(?:sql)?\s*([\s\S]*?)```"
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    # コードブロックがない場合、SELECT で始まる行を探す
     for line in text.splitlines():
         if line.strip().upper().startswith("SELECT"):
             return line.strip()
@@ -144,10 +172,77 @@ def chat_page():
     return render_template("chat.html")
 
 
+# ── スレッド管理 API ──────────────────────────────────────────
+
+@chat_bp.route("/api/chat/threads", methods=["GET"])
+def get_threads():
+    """スレッド一覧を返す。"""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "SELECT thread_id, thread_name, created_at FROM chat_threads ORDER BY created_at DESC"
+        )
+        return jsonify([dict(row) for row in cursor.fetchall()])
+    finally:
+        conn.close()
+
+
+@chat_bp.route("/api/chat/threads", methods=["POST"])
+def create_thread():
+    """新しいスレッドを作成する。"""
+    data = request.get_json(force=True)
+    thread_name = (data.get("thread_name") or "").strip()
+    if not thread_name:
+        return jsonify({"error": "スレッド名が必要です"}), 400
+    thread_id = str(uuid.uuid4())
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT INTO chat_threads (thread_id, thread_name) VALUES (?, ?)",
+            (thread_id, thread_name)
+        )
+        conn.commit()
+        return jsonify({"thread_id": thread_id, "thread_name": thread_name})
+    finally:
+        conn.close()
+
+
+@chat_bp.route("/api/chat/threads/<thread_id>", methods=["GET"])
+def get_thread_history(thread_id):
+    """スレッドのチャット履歴を返す。"""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "SELECT question, answer, sql_query, created_at FROM chat_history "
+            "WHERE thread_id = ? ORDER BY id ASC",
+            (thread_id,)
+        )
+        return jsonify([dict(row) for row in cursor.fetchall()])
+    finally:
+        conn.close()
+
+
+@chat_bp.route("/api/chat/threads/<thread_id>", methods=["DELETE"])
+def delete_thread(thread_id):
+    """スレッドとその履歴を削除する。"""
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM chat_history WHERE thread_id = ?", (thread_id,))
+        conn.execute("DELETE FROM chat_threads WHERE thread_id = ?", (thread_id,))
+        conn.commit()
+        return jsonify({"success": True})
+    finally:
+        conn.close()
+
+
+# ── チャット API ──────────────────────────────────────────────
+
 @chat_bp.route("/api/chat", methods=["POST"])
 def api_chat():
     data = request.get_json(force=True)
     question = (data.get("question") or "").strip()
+    thread_id = (data.get("thread_id") or "").strip()
+    thread_name = (data.get("thread_name") or "新しいスレッド").strip()
     if not question:
         return jsonify({"error": "質問が空です"}), 400
 
@@ -174,7 +269,6 @@ def api_chat():
 
     # Step 4: 回答生成
     result_json = json.dumps(rows, ensure_ascii=False, default=str)
-    # 結果が大きすぎる場合は先頭50件に絞る
     if len(rows) > 50:
         result_json = json.dumps(rows[:50], ensure_ascii=False, default=str)
         result_json += f"\n（全{len(rows)}件中、先頭50件を表示）"
@@ -188,6 +282,19 @@ def api_chat():
         answer = call_ollama(answer_prompt)
     except Exception as e:
         return jsonify({"error": f"回答生成に失敗しました: {e}", "sql": sql, "rows": rows}), 500
+
+    # Step 5: 履歴保存
+    if thread_id:
+        conn = get_connection()
+        try:
+            conn.execute(
+                "INSERT INTO chat_history (thread_id, thread_name, question, answer, sql_query) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (thread_id, thread_name, question, answer.strip(), sql)
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     return jsonify({
         "answer": answer.strip(),
