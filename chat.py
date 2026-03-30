@@ -45,6 +45,20 @@ SQL_PROMPT_TEMPLATE = """{schema}
 - コードブロック（```sql ... ``` や ``` ... ```）で囲んでください
 - SQL以外の説明文は不要です
 
+【金額計算ルール】
+- 水揚げ金額は必ず fish_receipt_details.unit_price × fish_receipt_details.weight の合計で計算する
+- SUM(unit_price * weight) AS total_amount
+- fish_receipts.total_weight は総重量であり金額ではないため、金額計算には使用禁止
+- 金額を求める場合は必ず fish_receipt_details テーブルをJOINして SUM(frd.unit_price * frd.weight) を使う
+- 正しい例:
+  SELECT ft.name, SUM(frd.unit_price * frd.weight) AS total_amount
+  FROM fish_receipts fr
+  JOIN fish_receipt_details frd ON fr.id = frd.receipt_id
+  JOIN fish_types ft ON frd.fish_code = ft.code
+  WHERE strftime('%Y', fr.receipt_date) = strftime('%Y', date('now', '-1 year'))
+  GROUP BY ft.name
+  HAVING ft.name IN ('ときさけ', 'ぶり')
+
 【日付処理ルール（SQLite専用）】
 - DATE_PART関数は使用禁止。日付処理は必ずstrftime関数を使うこと
 - 「昨年」= strftime('%Y', date('now', '-1 year'))
