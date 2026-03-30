@@ -8,6 +8,7 @@ from data_compare import data_compare_bp
 from past_landings import past_landings_bp
 from buyers import buyers_bp
 from fish_graph import fish_graph_bp
+from chat import chat_bp
 from db import get_connection, DB_PATH
 
 import sqlite3
@@ -64,6 +65,7 @@ app.register_blueprint(data_compare_bp)
 app.register_blueprint(past_landings_bp)
 app.register_blueprint(buyers_bp)
 app.register_blueprint(fish_graph_bp)
+app.register_blueprint(chat_bp)
 
 
 @app.route("/")
