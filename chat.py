@@ -24,8 +24,9 @@ SCHEMA_DESC = """
   （漁獲伝票のヘッダ情報。receipt_dateはYYYY-MM-DD形式）
 - fish_receipt_details: id, receipt_id, line_no, fish_code, fish_name, container, quantity, weight, unit_price, destination
   （伝票の明細行。receipt_id が fish_receipts.id に対応）
+  ※fish_nameはサイズや状態（「3.5」「ナオリ」など）が入っており、魚名検索には使用禁止
 - fish_types: id, code, name, per_unit_weight
-  （魚種マスタ）
+  （魚種マスタ。nameに「あきさけ(おす)」「あきさけ(めすキズ)」などの魚名が入っている）
 - buyers: id, code, name
   （買受人マスタ）
 - containers: id, code, name
@@ -35,6 +36,7 @@ SCHEMA_DESC = """
 
 リレーション:
 - fish_receipt_details.receipt_id = fish_receipts.id
+- fish_receipt_details.fish_code = fish_types.code  ← 魚名はこのJOINで取得する
 """
 
 SQL_PROMPT_TEMPLATE = """{schema}
@@ -46,48 +48,19 @@ SQL_PROMPT_TEMPLATE = """{schema}
 - コードブロック（```sql ... ``` や ``` ... ```）で囲んでください
 - SQL以外の説明文は不要です
 
-【金額計算ルール】
-- 水揚げ金額は必ず fish_receipt_details.unit_price × fish_receipt_details.weight の合計で計算する
-- SUM(unit_price * weight) AS total_amount
-- fish_receipts.total_weight は総重量であり金額ではないため、金額計算には使用禁止
-- 金額を求める場合は必ず fish_receipt_details テーブルをJOINして SUM(frd.unit_price * frd.weight) を使う
-- 正しい例:
-  SELECT ft.name, SUM(frd.unit_price * frd.weight) AS total_amount
-  FROM fish_receipts fr
-  JOIN fish_receipt_details frd ON fr.id = frd.receipt_id
-  JOIN fish_types ft ON frd.fish_code = ft.code
-  WHERE strftime('%Y', fr.receipt_date) = strftime('%Y', date('now', '-1 year'))
-  GROUP BY ft.name
-  HAVING ft.name IN ('ときさけ', 'ぶり')
-
 【魚名の検索ルール】
-- 魚名の検索は完全一致ではなく部分一致（LIKE）を使用する
-- 例：「あきさけ」で検索する場合は frd.fish_name LIKE '%あきさけ%'
-- これにより「あきさけ（おす）」「あきさけ（めす）」なども含めて抽出できる
+- 魚名の検索は必ずfish_typesテーブルのnameカラムをLIKEで検索する
+- 例：「あきさけ」→ fish_types.name LIKE '%あきさけ%'
+- fish_receipt_details.fish_nameは魚名検索に使用禁止（サイズ・状態の文字列が入っているため）
 
-【「キズ」の扱い】
-- 魚名に「キズ」または「きず」が含まれる場合は別グループとして集計する
+【キズの扱い】
+- キズ判定：(ft.name LIKE '%キズ%' OR ft.name LIKE '%きず%')
 - SQLiteは日本語のUPPER/LOWERが効かないため、LIKEを2つORで繋げる
-- キズ判定条件：(frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%')
-- 正しい例:
-  SELECT
-      CASE
-          WHEN (frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%') THEN frd.fish_name
-          ELSE REPLACE(REPLACE(frd.fish_name, '（おす）', ''), '（めす）', '')
-      END AS fish_group,
-      CASE
-          WHEN (frd.fish_name LIKE '%キズ%' OR frd.fish_name LIKE '%きず%') THEN 'キズあり'
-          ELSE 'キズなし'
-      END AS kizu_flag,
-      SUM(frd.unit_price * frd.weight) AS total_amount,
-      SUM(frd.weight) AS total_weight,
-      SUM(frd.quantity) AS total_quantity
-  FROM fish_receipts fr
-  JOIN fish_receipt_details frd ON fr.id = frd.receipt_id
-  WHERE frd.fish_name LIKE '%あきさけ%'
-  AND strftime('%Y', fr.receipt_date) = strftime('%Y', date('now', '-1 year'))
-  GROUP BY fish_group, kizu_flag
-  ORDER BY kizu_flag, fish_group
+- キズありとキズなしを別グループで集計する
+
+【金額計算ルール】
+- 水揚げ金額 = SUM(frd.unit_price * frd.weight)
+- fish_receipts.total_weightは総重量であり金額ではないため、金額計算には使用禁止
 
 【日付処理ルール（SQLite専用）】
 - DATE_PART関数は使用禁止。日付処理は必ずstrftime関数を使うこと
@@ -97,6 +70,23 @@ SQL_PROMPT_TEMPLATE = """{schema}
 - 「今月」= strftime('%Y-%m', 'now')
 - 年の比較例: strftime('%Y', receipt_date) = strftime('%Y', date('now', '-1 year'))
 - 月の比較例: strftime('%Y-%m', receipt_date) = strftime('%Y-%m', 'now')
+
+【正しいSQL例：昨年のあきさけの水揚げ金額をキズ別に集計】
+SELECT
+    CASE
+        WHEN (ft.name LIKE '%キズ%' OR ft.name LIKE '%きず%') THEN 'キズあり'
+        ELSE 'キズなし'
+    END AS kizu_flag,
+    SUM(frd.unit_price * frd.weight) AS total_amount,
+    SUM(frd.weight) AS total_weight,
+    SUM(frd.quantity) AS total_quantity
+FROM fish_receipts fr
+JOIN fish_receipt_details frd ON fr.id = frd.receipt_id
+JOIN fish_types ft ON frd.fish_code = ft.code
+WHERE ft.name LIKE '%あきさけ%'
+AND strftime('%Y', fr.receipt_date) = strftime('%Y', date('now', '-1 year'))
+GROUP BY kizu_flag
+ORDER BY kizu_flag
 
 質問: {question}
 """
