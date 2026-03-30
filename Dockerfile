@@ -21,4 +21,4 @@ RUN mkdir -p /app/static/uploads
 EXPOSE 5000
 
 # 起動コマンド（gunicorn で本番起動）
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
+CMD ["sh", "-c", "python3 init_db.py && gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 300 app:app"]
