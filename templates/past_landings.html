@@ -46,6 +46,15 @@
             border-radius: 4px;
             width: 160px;
         }
+        .filter-item select[multiple] {
+            width: 260px;
+            height: 160px;
+        }
+        .fish-select-hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
         .button-container {
             display: flex;
             justify-content: center;
@@ -292,12 +301,14 @@
             
             <div class="filter-item">
                 <label>魚種:</label>
-                <select name="fish_code" id="fish-code-select">
-                    <option value="">全ての魚種</option>
-                    {% for code, name in fish_types %}
-                    <option value="{{ code }}" {% if selected_fish_code == code %}selected{% endif %}>{{ code }} - {{ name }}</option>
-                    {% endfor %}
-                </select>
+                <div>
+                    <select name="fish_code" id="fish-code-select" multiple>
+                        {% for code, name in fish_types %}
+                        <option value="{{ code }}" {% if code in selected_fish_codes %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="fish-select-hint">Ctrl(Mac:⌘)+クリックで複数選択<br>未選択で全魚種を表示</div>
+                </div>
             </div>
             <div class="date-shortcut-buttons">
                 <button type="button" class="date-button" id="this-month">今月</button>
@@ -478,10 +489,10 @@
                 }
             }
             
-            // URLから選択された魚種コードを取得
+            // URLから選択された魚種コードを取得（複数対応）
             const urlParams = new URLSearchParams(window.location.search);
-            const selectedFishCode = urlParams.get('fish_code');
-            
+            const selectedFishCodes = urlParams.getAll('fish_code');
+
             // 初回ロード時に魚種リストを更新
             updateFishTypes();
             
@@ -550,69 +561,36 @@
             function updateFishTypes() {
                 const startDate = startDateInput.value;
                 const endDate = endDateInput.value;
-                
-                console.log(`魚種リスト更新: ${startDate} から ${endDate}`);
-                
-                if (startDate && endDate) {
-                    // APIを呼び出して選択された期間内の魚種データを取得
-                    fetch(`/past_landings/get_fish_types?start_date=${startDate}&end_date=${endDate}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`APIエラー: ${response.status}`);
+
+                if (!startDate || !endDate) return;
+
+                // 現在の複数選択を保存
+                const currentSelected = Array.from(fishCodeSelect.selectedOptions).map(o => o.value);
+
+                fetch(`/past_landings/get_fish_types?start_date=${startDate}&end_date=${endDate}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`APIエラー: ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        fishCodeSelect.innerHTML = '';
+
+                        data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.code;
+                            option.textContent = `${item.code} - ${item.name}`;
+
+                            // 現在の選択を復元、なければURLパラメータを反映
+                            if (currentSelected.includes(item.code) || selectedFishCodes.includes(item.code)) {
+                                option.selected = true;
                             }
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('APIレスポンス:', data);
-                            console.log(`取得した魚種数: ${data.length}`);
-                            
-                            // 現在選択されている値を保存
-                            const currentSelectedValue = fishCodeSelect.value;
-                            console.log(`現在選択中の魚種: ${currentSelectedValue}`);
-                            
-                            // 現在のオプションをクリア
-                            fishCodeSelect.innerHTML = '';
-                            
-                            // 「全ての魚種」オプションを追加
-                            const allOption = document.createElement('option');
-                            allOption.value = '';
-                            allOption.textContent = '全ての魚種';
-                            fishCodeSelect.appendChild(allOption);
-                            
-                            // 取得した魚種データに基づいてオプションを追加
-                            data.forEach(item => {
-                                const option = document.createElement('option');
-                                option.value = item.code;
-                                option.textContent = `${item.code} - ${item.name}`;
-                                console.log(`追加した魚種: ${item.code} - ${item.name}`);
-                                
-                                // 前の選択を維持
-                                if (currentSelectedValue === item.code) {
-                                    option.selected = true;
-                                }
-                                
-                                fishCodeSelect.appendChild(option);
-                            });
-                            
-                            // URLから取得した選択値がある場合は、それを選択状態にする
-                            if (selectedFishCode) {
-                                console.log(`URLから取得した魚種コード: ${selectedFishCode}`);
-                                // この処理は初回ロード時のみ実行
-                                for (let i = 0; i < fishCodeSelect.options.length; i++) {
-                                    if (fishCodeSelect.options[i].value === selectedFishCode) {
-                                        fishCodeSelect.options[i].selected = true;
-                                        console.log(`選択状態にした魚種: ${selectedFishCode}`);
-                                        break;
-                                    }
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('魚種データの取得に失敗しました:', error);
+
+                            fishCodeSelect.appendChild(option);
                         });
-                } else {
-                    console.warn('開始日または終了日が指定されていません');
-                }
+                    })
+                    .catch(error => {
+                        console.error('魚種データの取得に失敗しました:', error);
+                    });
             }
         });
 
@@ -623,12 +601,11 @@
             const endDate = document.getElementById('end_date').value;
 
             const select = document.getElementById('fish-code-select');
-            let fishCodeParams = '';
-            if (select.value) {
-                fishCodeParams = `&fish_code=${select.value}`;
-            }
+            const selectedCodes = Array.from(select.selectedOptions).map(o => o.value).filter(v => v);
+            const fishCodeParams = selectedCodes.map(c => `fish_code=${encodeURIComponent(c)}`).join('&');
+            const query = fishCodeParams ? `&${fishCodeParams}` : '';
 
-            window.location.href = `/fish_graph?start_date=${startDate}&end_date=${endDate}${fishCodeParams}`;
+            window.location.href = `/fish_graph?start_date=${startDate}&end_date=${endDate}${query}`;
         });
     </script>
 </body>

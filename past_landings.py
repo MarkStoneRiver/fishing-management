@@ -39,8 +39,8 @@ def past_landings():
         fiscal_year_start = datetime(current_year, 4, 1)
 
     start_date = request.args.get('start_date', fiscal_year_start.strftime('%Y-%m-%d'))
-    fish_code_str = request.args.get('fish_code', None)
-    fish_code = parse_fish_code(fish_code_str) if fish_code_str else None
+    fish_code_strs = request.args.getlist('fish_code')
+    fish_codes = [parse_fish_code(s) for s in fish_code_strs if s]
 
     c.execute("SELECT code, name FROM fish_types ORDER BY code")
     fish_types_raw = c.fetchall()
@@ -59,9 +59,10 @@ def past_landings():
     """
     params = [start_date, end_date]
 
-    if fish_code:
-        query += " AND d.fish_code = ?"
-        params.append(fish_code)
+    if fish_codes:
+        placeholders = ','.join('?' * len(fish_codes))
+        query += f" AND d.fish_code IN ({placeholders})"
+        params.extend(fish_codes)
 
     query += " GROUP BY r.receipt_date, d.fish_code, d.fish_name ORDER BY r.receipt_date, d.fish_code, d.fish_name"
     c.execute(query, params)
@@ -109,7 +110,7 @@ def past_landings():
         fish_types=fish_types,
         start_date=start_date,
         end_date=end_date,
-        selected_fish_code=fish_code_str,
+        selected_fish_codes=fish_code_strs,
     )
 
 
