@@ -379,6 +379,15 @@
                 </tr>
             </thead>
             <tbody>
+                <tr class="total-row">
+                    <td colspan="4">合計</td>
+                    <td class="numeric">{{ "{:,}".format(grand_total.total_weight) }}</td>
+                    <td class="numeric">{{ "{:,}".format(grand_total.total_quantity) }}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td class="numeric">{{ "{:,}".format(grand_total.total_amount|int) }}</td>
+                </tr>
                 {% for item in results %}
                 <tr>
                     <td>{{ item.receipt_date }}</td>
@@ -393,15 +402,6 @@
                     <td class="numeric">{{ "{:,}".format(item.total_amount|int) }}</td>
                 </tr>
                 {% endfor %}
-                <tr class="total-row">
-                    <td colspan="4">合計</td>
-                    <td class="numeric">{{ "{:,}".format(grand_total.total_weight) }}</td>
-                    <td class="numeric">{{ "{:,}".format(grand_total.total_quantity) }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td class="numeric">{{ "{:,}".format(grand_total.total_amount|int) }}</td>
-                </tr>
             </tbody>
         </table>
         {% else %}
