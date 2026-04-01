@@ -116,61 +116,50 @@
             background-color: #0b7dda;
             font-weight: bold;
         }
-        .select-hint {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-            text-align: left;
-            margin-left: 130px;
-        }
-        #fish-code-select {
-            width: 250px;
-        }
-        .checkbox-container {
+        .fish-select-wrapper {
             display: flex;
             flex-direction: column;
-            width: 300px;
+            gap: 6px;
         }
-        .checkbox-scroll {
-            max-height: 180px;
-            overflow-y: auto;
-            width: 100%;
+        .fish-search-input {
+            width: 400px;
+            padding: 7px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 5px;
-            margin-top: 5px;
-            background-color: #fff;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 14px;
+            box-sizing: border-box;
         }
-        .checkbox-option {
-            margin: 4px 0;
+        .fish-search-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .filter-item select[multiple] {
+            width: 400px;
+            height: 280px;
+            font-size: 14px;
+            padding: 4px;
+        }
+        .fish-select-toolbar {
             display: flex;
             align-items: center;
-            width: 100%;
+            justify-content: space-between;
+            width: 400px;
         }
-        .checkbox-option label {
-            margin-left: 8px;
-            font-weight: normal;
+        .fish-select-hint {
+            font-size: 11px;
+            color: #888;
+        }
+        .fish-clear-btn {
+            font-size: 12px;
+            padding: 3px 10px;
+            background: #fff;
+            border: 1px solid #bbb;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
-            width: calc(100% - 25px);
-            text-align: left;
-            line-height: 1.3;
+            color: #555;
         }
-        .checkbox-option input {
-            cursor: pointer;
-            width: 14px;
-            height: 14px;
-            margin: 0;
-            flex-shrink: 0;
-        }
-        .all-fish-option {
-            padding: 3px 0;
-            margin-bottom: 5px;
-            border-bottom: 1px solid #eee;
-        }
-        .all-fish-option label {
-            font-weight: bold;
+        .fish-clear-btn:hover {
+            background: #f0f0f0;
         }
     </style>
 </head>
@@ -197,27 +186,18 @@
                 <label class="filter-label">期間(終了):</label>
                 <input type="date" name="end_date" value="{{ end_date }}" id="end_date">
             </div>
-            <div class="filter-item">
+            <div class="filter-item" style="align-items: flex-start;">
                 <label class="filter-label">魚種:</label>
-                <div class="checkbox-container">
-                    <div class="checkbox-option all-fish-option">
-                        <input type="checkbox" id="all-fish" name="all_fish" onchange="toggleAllFish(this.checked)" 
-                            {% if not selected_fish_codes %}checked{% endif %}>
-                        <label for="all-fish">全ての魚種</label>
-                    </div>
-                    <div class="checkbox-scroll">
+                <div class="fish-select-wrapper">
+                    <input type="text" id="fish-search" class="fish-search-input" placeholder="魚種名で絞り込み...">
+                    <select name="fish_code" id="fish-code-select" multiple>
                         {% for code, name in fish_types %}
-                        <div class="checkbox-option">
-                            <input type="checkbox" id="fish-{{ code }}" name="fish_code" value="{{ code }}" 
-                                {% if selected_fish_codes %}
-                                    {% if code|string in selected_fish_codes %}checked{% endif %}
-                                {% else %}
-                                    checked
-                                {% endif %}
-                                class="fish-checkbox">
-                            <label for="fish-{{ code }}">{{ code }} - {{ name }}</label>
-                        </div>
+                        <option value="{{ code }}" {% if code in selected_fish_codes %}selected{% endif %}>{{ code }} - {{ name }}</option>
                         {% endfor %}
+                    </select>
+                    <div class="fish-select-toolbar">
+                        <div class="fish-select-hint">Ctrl(Mac:⌘)+クリックで複数選択　未選択=全魚種</div>
+                        <button type="button" class="fish-clear-btn" id="fish-clear-btn">選択解除</button>
                     </div>
                 </div>
             </div>
@@ -341,30 +321,22 @@
     </script>
 
     <script>
-        function toggleAllFish(checked) {
-            const checkboxes = document.querySelectorAll('.fish-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = checked;
-            });
-        }
-
-        // ページ読み込み時に初期化
         document.addEventListener('DOMContentLoaded', function() {
-            // URLパラメータを確認
-            const urlParams = new URLSearchParams(window.location.search);
-            // fish_codeパラメータがない場合は初回表示と判断し、全選択する
-            if (!urlParams.has('fish_code')) {
-                document.getElementById('all-fish').checked = true;
-                const checkboxes = document.querySelectorAll('.fish-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = true;
+            const fishCodeSelect = document.getElementById('fish-code-select');
+            const fishSearch = document.getElementById('fish-search');
+
+            // インクリメンタル検索
+            fishSearch.addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                Array.from(fishCodeSelect.options).forEach(function(opt) {
+                    opt.style.display = opt.textContent.toLowerCase().includes(keyword) ? '' : 'none';
                 });
-            } else {
-                // 全ての魚種が選択されているかチェック
-                const allChecked = Array.from(document.querySelectorAll('.fish-checkbox'))
-                    .every(checkbox => checkbox.checked);
-                document.getElementById('all-fish').checked = allChecked;
-            }
+            });
+
+            // 選択解除ボタン
+            document.getElementById('fish-clear-btn').addEventListener('click', function() {
+                Array.from(fishCodeSelect.options).forEach(function(opt) { opt.selected = false; });
+            });
         });
     </script>
 </body>
