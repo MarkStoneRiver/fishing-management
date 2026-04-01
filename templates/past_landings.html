@@ -163,6 +163,27 @@
             color: #666;
             font-style: italic;
         }
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        th.sortable:hover {
+            background-color: #e0e0e0;
+        }
+        th.sortable::after {
+            content: ' ⇅';
+            font-size: 11px;
+            color: #aaa;
+        }
+        th.sort-asc::after {
+            content: ' ▲';
+            color: #333;
+        }
+        th.sort-desc::after {
+            content: ' ▼';
+            color: #333;
+        }
         .date-controls-block {
             width: 100%;
             display: flex;
@@ -406,16 +427,16 @@
         <table>
             <thead>
                 <tr>
-                    <th>水揚げ日</th>
-                    <th>魚種コード</th>
-                    <th>魚種名</th>
-                    <th>魚種名(補足)</th>
-                    <th>総重量(kg)</th>
-                    <th>総尾数</th>
-                    <th>キロ単価(円)</th>
-                    <th>1尾あたり平均重量(kg)</th>
-                    <th>1尾あたり平均単価(円)</th>
-                    <th>合計金額(円)</th>
+                    <th class="sortable" data-col="0" data-type="str">水揚げ日</th>
+                    <th class="sortable" data-col="1" data-type="str">魚種コード</th>
+                    <th class="sortable" data-col="2" data-type="str">魚種名</th>
+                    <th class="sortable" data-col="3" data-type="str">魚種名(補足)</th>
+                    <th class="sortable" data-col="4" data-type="num">総重量(kg)</th>
+                    <th class="sortable" data-col="5" data-type="num">総尾数</th>
+                    <th class="sortable" data-col="6" data-type="num">キロ単価(円)</th>
+                    <th class="sortable" data-col="7" data-type="num">1尾あたり平均重量(kg)</th>
+                    <th class="sortable" data-col="8" data-type="num">1尾あたり平均単価(円)</th>
+                    <th class="sortable" data-col="9" data-type="num">合計金額(円)</th>
                 </tr>
             </thead>
             <tbody>
@@ -706,6 +727,59 @@
                     });
             }
         });
+
+        // テーブルのソート機能
+        (function() {
+            const table = document.querySelector('.data-section table');
+            if (!table) return;
+
+            let currentCol = null;
+            let currentDir = 'asc';
+
+            table.querySelectorAll('th.sortable').forEach(function(th) {
+                th.addEventListener('click', function() {
+                    const col = parseInt(th.dataset.col);
+                    const type = th.dataset.type;
+
+                    if (currentCol === col) {
+                        currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentCol = col;
+                        currentDir = 'asc';
+                    }
+
+                    // インジケーターをリセット
+                    table.querySelectorAll('th.sortable').forEach(function(t) {
+                        t.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    th.classList.add(currentDir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+                    const tbody = table.querySelector('tbody');
+                    const totalRow = tbody.querySelector('tr.total-row');
+                    const rows = Array.from(tbody.querySelectorAll('tr:not(.total-row)'));
+
+                    rows.sort(function(a, b) {
+                        const aText = (a.cells[col] ? a.cells[col].textContent.trim() : '');
+                        const bText = (b.cells[col] ? b.cells[col].textContent.trim() : '');
+
+                        let cmp;
+                        if (type === 'num') {
+                            const aNum = parseFloat(aText.replace(/,/g, '')) || 0;
+                            const bNum = parseFloat(bText.replace(/,/g, '')) || 0;
+                            cmp = aNum - bNum;
+                        } else {
+                            cmp = aText.localeCompare(bText, 'ja');
+                        }
+                        return currentDir === 'asc' ? cmp : -cmp;
+                    });
+
+                    // 合計行を先頭に固定して再挿入
+                    tbody.innerHTML = '';
+                    if (totalRow) tbody.appendChild(totalRow);
+                    rows.forEach(function(row) { tbody.appendChild(row); });
+                });
+            });
+        })();
 
         // グラフボタンのクリックイベント
         document.getElementById('graph-link').addEventListener('click', function(e) {
