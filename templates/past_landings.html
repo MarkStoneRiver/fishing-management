@@ -161,18 +161,44 @@
             color: #666;
             font-style: italic;
         }
+        .date-controls-block {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .date-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .date-row label {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .date-row input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
         .date-shortcut-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 8px;
+            flex-wrap: wrap;
             width: 100%;
         }
-        
+
         .date-button {
             display: inline-block;
-            width: 80px;
-            padding: 8px;
+            min-width: 70px;
+            padding: 7px 10px;
             font-size: 14px;
             border: 2px solid #333;
             background-color: #fff;
@@ -181,9 +207,17 @@
             cursor: pointer;
             text-align: center;
         }
-        
+
         .date-button:hover {
             background-color: #f0f0f0;
+        }
+
+        .date-button.year-button {
+            border-color: #2196F3;
+            color: #2196F3;
+        }
+        .date-button.year-button:hover {
+            background-color: #e3f2fd;
         }
 
         /* カレンダー関連のスタイル */
@@ -304,36 +338,49 @@
     
     <div class="filter-section">
         <form action="/past_landings/" method="get" id="search-form">
-            <div class="filter-item">
-                <label>期間(開始):</label>
-                <input type="date" name="start_date" value="{{ start_date }}" id="start_date">
-            </div>
-            <div class="filter-item">
-                <label>期間(終了):</label>
-                <input type="date" name="end_date" value="{{ end_date }}" id="end_date">
-            </div>
-            
-            <!-- カレンダー表示部分 -->
-            <div class="calendar-container">
-                <div class="calendar">
-                    <div class="calendar-header">
-                        <button id="prevMonth" type="button">&lt;</button>
-                        <h3 id="currentMonth"></h3>
-                        <button id="nextMonth" type="button">&gt;</button>
+            <!-- 期間と操作ボタンをまとめたブロック -->
+            <div class="date-controls-block">
+                <div class="date-row">
+                    <label>期間(開始):</label>
+                    <input type="date" name="start_date" value="{{ start_date }}" id="start_date">
+                    <label>期間(終了):</label>
+                    <input type="date" name="end_date" value="{{ end_date }}" id="end_date">
+                </div>
+                <div class="date-shortcut-buttons">
+                    <button type="button" class="date-button" id="this-month">今月</button>
+                    <button type="button" class="date-button" id="last-month">先月</button>
+                    <button type="button" class="date-button" id="today">日付指定</button>
+                    <div id="year-buttons" style="display:contents;"></div>
+                </div>
+
+                <!-- カレンダー表示部分 -->
+                <div class="calendar-container">
+                    <div class="calendar">
+                        <div class="calendar-header">
+                            <button id="prevMonth" type="button">&lt;</button>
+                            <h3 id="currentMonth"></h3>
+                            <button id="nextMonth" type="button">&gt;</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div>日</div>
+                            <div>月</div>
+                            <div>火</div>
+                            <div>水</div>
+                            <div>木</div>
+                            <div>金</div>
+                            <div>土</div>
+                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
                     </div>
-                    <div class="calendar-weekdays">
-                        <div>日</div>
-                        <div>月</div>
-                        <div>火</div>
-                        <div>水</div>
-                        <div>木</div>
-                        <div>金</div>
-                        <div>土</div>
-                    </div>
-                    <div class="calendar-days" id="calendarDays"></div>
+                </div>
+
+                <div class="button-container" style="margin-top: 5px;">
+                    <button type="submit" class="search-button">検索</button>
+                    <a href="#" id="graph-link" class="search-button" style="margin-left: 10px;">グラフ</a>
                 </div>
             </div>
-            
+
+            <!-- 魚種 -->
             <div class="filter-item" style="align-items: flex-start;">
                 <label style="padding-top: 8px;">魚種:</label>
                 <div class="fish-select-wrapper">
@@ -348,15 +395,6 @@
                         <button type="button" class="fish-clear-btn" id="fish-clear-btn">選択解除</button>
                     </div>
                 </div>
-            </div>
-            <div class="date-shortcut-buttons">
-                <button type="button" class="date-button" id="this-month">今月</button>
-                <button type="button" class="date-button" id="last-month">先月</button>
-                <button type="button" class="date-button" id="today">日付指定</button>
-            </div>
-            <div class="button-container">
-                <button type="submit" class="search-button">検索</button>
-                <a href="#" id="graph-link" class="search-button" style="margin-left: 10px;">グラフ</a>
             </div>
         </form>
     </div>
@@ -550,6 +588,25 @@
             // 初回ロード時に魚種リストを更新
             updateFishTypes();
             
+            // 年ボタンを動的生成（5年前〜今年）
+            const yearButtonsContainer = document.getElementById('year-buttons');
+            const thisYear = new Date().getFullYear();
+            for (let y = thisYear - 4; y <= thisYear; y++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'date-button year-button';
+                btn.textContent = `${y}年`;
+                btn.dataset.year = y;
+                btn.addEventListener('click', function() {
+                    const yr = parseInt(this.dataset.year);
+                    startDateInput.value = `${yr}-01-01`;
+                    endDateInput.value = `${yr}-12-31`;
+                    document.querySelector('.calendar-container').style.display = 'none';
+                    updateFishTypes();
+                });
+                yearButtonsContainer.appendChild(btn);
+            }
+
             // 本日ボタン
             document.querySelector('#today').addEventListener('click', function() {
                 // 日付設定を削除し、カレンダー表示のみ行う
