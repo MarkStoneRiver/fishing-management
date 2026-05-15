@@ -70,7 +70,7 @@ def fish_receipt():
                 receipt_id = c.lastrowid
 
             total_weight = 0
-            for i in range(1, 11):
+            for i in range(1, 101):
                 fish_code = request.form.get(f'fish_code_{i}')
                 fish_name = request.form.get(f'fish_name_{i}')
                 container = request.form.get(f'container_{i}')
@@ -79,17 +79,20 @@ def fish_receipt():
                 unit_price = request.form.get(f'unit_price_{i}')
                 destination = request.form.get(f'destination_{i}')
 
-                if fish_code and fish_name and container and quantity and weight and unit_price and destination:
+                if fish_code and weight and unit_price:
                     try:
                         weight_f = float(weight)
-                        quantity_f = float(quantity)
+                        quantity_f = float(quantity) if quantity else 0.0
                         unit_price_i = int(unit_price)
+                        container_v = container or ''
+                        fish_name_v = fish_name or ''
+                        destination_v = destination or ''
                         total_weight += weight_f
                         c.execute("""
                             INSERT INTO fish_receipt_details
                             (receipt_id, line_no, fish_code, fish_name, container, quantity, weight, unit_price, destination, created_at, updated_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                        """, (receipt_id, i, fish_code, fish_name, container, quantity_f, weight_f, unit_price_i, destination))
+                        """, (receipt_id, i, fish_code, fish_name_v, container_v, quantity_f, weight_f, unit_price_i, destination_v))
                     except ValueError:
                         pass
 

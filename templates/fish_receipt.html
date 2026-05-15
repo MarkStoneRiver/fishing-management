@@ -418,25 +418,55 @@
             }
         }
 
+        // 行番号重複を防ぐためのグローバルカウンタ
+        let rowCounter = 0;
+
+        function getNextRowIndex() {
+            rowCounter += 1;
+            return rowCounter;
+        }
+
+        // 既存行のカウンタ初期化（ページ読み込み時に呼び出す）
+        function initRowCounter() {
+            const tbody = document.getElementById('detail-rows');
+            rowCounter = tbody.rows.length;
+        }
+
+        // 全行のname属性と表示番号を振り直す
+        function renumberRows() {
+            const rows = document.querySelectorAll('#detail-rows tr');
+            rows.forEach((row, index) => {
+                const no = index + 1;
+                row.cells[0].textContent = no;
+                const fields = ['fish_code', 'fish_type', 'fish_name', 'container', 'quantity', 'weight', 'unit_price', 'destination'];
+                fields.forEach(field => {
+                    const input = row.querySelector(`input[name^="${field}_"]`);
+                    if (input) input.name = `${field}_${no}`;
+                });
+            });
+        }
+
         function addRow() {
             const tbody = document.getElementById('detail-rows');
-            const rowCount = tbody.rows.length + 1;
+            const newIndex = getNextRowIndex();
             const row = document.createElement('tr');
             
             row.innerHTML = `
-                <td>${rowCount}</td>
-                <td><input type="text" name="fish_code_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this); getFishName(this);"></td>
-                <td><input type="text" name="fish_type_${rowCount}" class="fish-type-display" readonly></td>
-                <td><input type="text" name="fish_name_${rowCount}"></td>
-                <td><input type="text" name="container_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
-                <td><input type="text" name="quantity_${rowCount}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
-                <td><input type="text" name="weight_${rowCount}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
-                <td><input type="text" name="unit_price_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
-                <td><input type="text" name="destination_${rowCount}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td>${tbody.rows.length + 1}</td>
+                <td><input type="text" name="fish_code_${newIndex}" pattern="[0-9]*" onchange="validateNumber(this); getFishName(this);"></td>
+                <td><input type="text" name="fish_type_${newIndex}" class="fish-type-display" readonly></td>
+                <td><input type="text" name="fish_name_${newIndex}"></td>
+                <td><input type="text" name="container_${newIndex}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td><input type="text" name="quantity_${newIndex}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                <td><input type="text" name="weight_${newIndex}" pattern="[0-9]*(\.[0-9]+)?" onchange="validateDecimal(this)"></td>
+                <td><input type="text" name="unit_price_${newIndex}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
+                <td><input type="text" name="destination_${newIndex}" pattern="[0-9]*" onchange="validateNumber(this)"></td>
                 <td><button type="button" class="delete-btn" onclick="deleteRow(this)">削除</button></td>
             `;
             
             tbody.appendChild(row);
+            // 表示番号を振り直す
+            renumberRows();
             
             // 新しい行の最初の入力欄にフォーカスを移動
             const firstInput = row.querySelector('input');
@@ -608,58 +638,39 @@
             
             // 各行をチェック
             for (let i = 0; i < fishCodeInputs.length; i++) {
-                // 行内の入力状態をチェック
+                // 行内の入力状態をチェック（必須3項目のみ）
                 const hasCode = !!fishCodeInputs[i].value;
+                const hasWeight = !!weightInputs[i].value;
+                const hasPrice = !!unitPriceInputs[i].value;
+                
+                // 任意項目
                 const hasName = !!fishNameInputs[i].value;
                 const hasContainer = !!containerInputs[i].value;
                 const hasQuantity = !!quantityInputs[i].value;
-                const hasWeight = !!weightInputs[i].value;
-                const hasPrice = !!unitPriceInputs[i].value;
                 const hasDestination = !!destinationInputs[i].value;
                 
-                // 行内のフィールドがすべて空かどうかチェック
+                // 行内のすべてのフィールドが空かどうかチェック（必須+任意すべて）
                 const isRowEmpty = !hasCode && !hasName && !hasContainer && !hasQuantity && !hasWeight && !hasPrice && !hasDestination;
-                
-                // 行内に一部だけ入力されているかチェック
-                const isRowPartiallyFilled = !isRowEmpty && !(hasCode && hasName && hasContainer && hasQuantity && hasWeight && hasPrice && hasDestination);
-                
-                // 行が完全に入力されているかチェック
-                const isRowComplete = hasCode && hasName && hasContainer && hasQuantity && hasWeight && hasPrice && hasDestination;
                 
                 // 完全に空の行はスキップ
                 if (isRowEmpty) {
                     continue;
                 }
                 
-                // 一部だけ入力されている行はエラー
-                if (isRowPartiallyFilled) {
-                    // 不足している項目を特定してエラーメッセージに追加
+                // 必須3項目のうち不足があればエラー
+                if (!hasCode || !hasWeight || !hasPrice) {
                     if (!hasCode) {
                         errorMessage += `・${i+1}行目の魚種コードを入力してください\n`;
                     }
-                    if (!hasName) {
-                        errorMessage += `・${i+1}行目の魚種名(補足)を入力してください\n`;
-                    }
-                    if (!hasContainer) {
-                        errorMessage += `・${i+1}行目の容器を入力してください\n`;
-                    }
-                    if (!hasQuantity) {
-                        errorMessage += `・${i+1}行目の個(尾)数を入力してください\n`;
-                    }
                     if (!hasWeight) {
-                        errorMessage += `・${i+1}行目の重量を入力してください\n`;
+                        errorMessage += `・${i+1}行目の正味数量を入力してください\n`;
                     }
                     if (!hasPrice) {
                         errorMessage += `・${i+1}行目の単価を入力してください\n`;
                     }
-                    if (!hasDestination) {
-                        errorMessage += `・${i+1}行目の売先を入力してください\n`;
-                    }
                     hasError = true;
-                }
-                
-                // 完全に入力されている行があれば有効な行として記録
-                if (isRowComplete) {
+                } else {
+                    // 必須3項目がすべて入力されていれば有効な行
                     hasValidRow = true;
                 }
             }
@@ -726,11 +737,8 @@
         function deleteRow(button) {
             const row = button.parentNode.parentNode;
             row.parentNode.removeChild(row);
-            // 行番号を振り直す
-            const rows = document.querySelectorAll('#detail-rows tr');
-            rows.forEach((row, index) => {
-                row.cells[0].textContent = index + 1;
-            });
+            // 行番号とname属性を振り直す
+            renumberRows();
         }
 
         // 魚種コードから魚種名を取得する関数
@@ -764,6 +772,9 @@
 
         // 既存の魚種コードの魚種名を読み込む
         document.addEventListener('DOMContentLoaded', function() {
+            // グローバルカウンタを現在の行数で初期化
+            initRowCounter();
+
             // 既存の魚種コード入力フィールドすべてに対して
             const fishCodeInputs = document.querySelectorAll('input[name^="fish_code_"]');
             fishCodeInputs.forEach(input => {
@@ -771,8 +782,6 @@
                     getFishName(input);
                 }
             });
-            
-            // 残りのDOM読み込み時の処理
         });
     </script>
 </body>
