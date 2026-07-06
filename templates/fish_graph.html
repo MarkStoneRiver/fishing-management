@@ -1,591 +1,518 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>漁獲量グラフ</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        .container {
-            width: 90%;
-            margin: 0 auto 30px auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .chart-container {
-            position: relative;
-            height: 60vh;
+{% extends "layout.html" %}
+{% block title %}漁獲量グラフ{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* ===== フィルターセクション ===== */
+    .filter-card {
+        max-width: 860px;
+        margin: 0 auto 20px auto;
+    }
+
+    .date-controls-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .date-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .date-row label {
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .date-row input[type="date"] {
+        padding: 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        width: 150px;
+    }
+
+    .date-shortcut-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .date-btn {
+        display: inline-block;
+        min-width: 70px;
+        padding: 7px 12px;
+        font-size: 14px;
+        border: 2px solid var(--color-text);
+        background-color: var(--color-white);
+        color: var(--color-text);
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: center;
+        font-family: inherit;
+        -webkit-appearance: none;
+    }
+    .date-btn:hover { background-color: #f0f0f0; }
+    .date-btn.year-btn {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+    .date-btn.year-btn:hover { background-color: #e3f2fd; }
+
+    /* カレンダー */
+    .calendar-container {
+        width: 100%;
+        display: none;
+        justify-content: center;
+        margin: 12px 0;
+    }
+    .calendar {
+        width: 300px;
+        background-color: var(--color-white);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: var(--shadow);
+    }
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .calendar-header h3 { margin: 0; font-size: 16px; }
+    .calendar-header button {
+        background: none; border: none;
+        font-size: 16px; cursor: pointer; padding: 5px 10px;
+    }
+    .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 13px;
+    }
+    .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+    .calendar-day {
+        text-align: center; padding: 5px;
+        cursor: pointer; border-radius: 4px; font-size: 13px;
+    }
+    .calendar-day:hover { background-color: #f0f0f0; }
+    .calendar-day.today { background-color: #e6f7ff; font-weight: bold; }
+    .calendar-day.selected { background-color: var(--color-primary); color: white; }
+    .calendar-day.other-month { color: #ccc; }
+
+    /* 魚種・データタイプ選択 */
+    .filter-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+    .filter-label {
+        font-weight: bold;
+        padding-top: 8px;
+        white-space: nowrap;
+        min-width: 100px;
+        text-align: right;
+        flex-shrink: 0;
+    }
+    .fish-select-wrapper {
+        flex: 1;
+        min-width: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .fish-search-input {
+        width: 100%;
+        padding: 7px 10px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .fish-search-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+    #fish-code-select {
+        width: 100%;
+        max-width: 420px;
+        height: 200px;
+        font-size: 14px;
+        padding: 4px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+    }
+    .fish-select-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        max-width: 420px;
+    }
+    .fish-select-hint { font-size: 11px; color: var(--color-text-light); }
+    .fish-clear-btn {
+        font-size: 12px; padding: 4px 10px;
+        background: var(--color-white); border: 1px solid #bbb;
+        border-radius: 4px; cursor: pointer; color: #555;
+    }
+    .fish-clear-btn:hover { background: #f0f0f0; }
+
+    #data-type-select {
+        max-width: 200px;
+        padding: 8px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-row {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    /* ===== グラフ ===== */
+    .chart-card {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .chart-container {
+        position: relative;
+        height: 60vh;
+        width: 100%;
+        margin: 0 auto;
+    }
+    .no-data {
+        text-align: center;
+        padding: 30px;
+        color: var(--color-text-light);
+        font-style: italic;
+    }
+
+    /* スマホ調整 */
+    @media (max-width: 768px) {
+        .date-row input[type="date"] {
             width: 100%;
-            margin: 20px auto;
+            font-size: 16px;
         }
-        .filter-section {
-            width: 80%;
-            margin: 0 auto 30px auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .filter-item {
-            margin: 10px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: flex-start;
-            width: 100%;
-        }
-        .filter-label {
-            display: inline-block;
-            width: 130px;
-            text-align: right;
-            margin-right: 10px;
-            font-weight: bold;
-            padding-top: 5px;
-        }
-        .filter-item select, .filter-item input {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 160px;
-        }
-        .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 15px;
-            width: 100%;
-        }
-        .search-button {
-            display: inline-block;
-            width: 100px;
-            padding: 8px;
-            font-size: 14px;
-            border: 2px solid #333;
-            background-color: #fff;
-            text-decoration: none;
-            color: #000;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-        }
-        .search-button:hover {
-            background-color: #f0f0f0;
-        }
-        .no-data {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-        }
-        /* ナビゲーションヘッダーのスタイル */
-        .nav-header {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .nav-btn {
-            padding: 8px 15px;
-            text-decoration: none;
-            background-color: #2196F3;
-            color: white;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .nav-btn:hover {
-            background-color: #0b7dda;
-        }
-        .nav-btn.active {
-            background-color: #0b7dda;
-            font-weight: bold;
-        }
-        .fish-select-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        #fish-code-select {
+            height: 150px;
+            font-size: 16px;
         }
         .fish-search-input {
-            width: 400px;
-            padding: 7px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        .fish-search-input:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-        .filter-item select[multiple] {
-            width: 400px;
-            height: 280px;
-            font-size: 14px;
-            padding: 4px;
-        }
-        .fish-select-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 400px;
-        }
-        .fish-select-hint {
-            font-size: 11px;
-            color: #888;
-        }
-        .fish-clear-btn {
-            font-size: 12px;
-            padding: 3px 10px;
-            background: #fff;
-            border: 1px solid #bbb;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #555;
-        }
-        .fish-clear-btn:hover {
-            background: #f0f0f0;
-        }
-        .date-controls-block {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
-        .date-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .date-row label {
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        .date-row input[type="date"] {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .date-shortcut-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-        .date-button {
-            display: inline-block;
-            min-width: 70px;
-            padding: 7px 10px;
-            font-size: 14px;
-            border: 2px solid #333;
-            background-color: #fff;
-            color: #000;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-        }
-        .date-button:hover {
-            background-color: #f0f0f0;
-        }
-        .date-button.year-button {
-            border-color: #2196F3;
-            color: #2196F3;
-        }
-        .date-button.year-button:hover {
-            background-color: #e3f2fd;
-        }
-        .calendar-container {
-            width: 100%;
-            display: none;
-            justify-content: center;
-            margin: 15px 0;
-        }
-        .calendar {
-            width: 300px;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .calendar-header h3 {
-            margin: 0;
             font-size: 16px;
         }
-        .calendar-header button {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 5px 10px;
-        }
-        .calendar-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-        .calendar-day {
-            text-align: center;
-            padding: 5px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .calendar-day:hover { background-color: #f0f0f0; }
-        .calendar-day.today { background-color: #e6f7ff; font-weight: bold; }
-        .calendar-day.selected { background-color: #2196F3; color: white; }
-        .calendar-day.other-month { color: #ccc; }
-    </style>
-</head>
-<body>
-    <!-- ナビゲーションヘッダー -->
-    <header>
-        <a href="/" class="nav-btn">トップ</a>
-        <a href="/fish_receipt/" class="nav-btn">伝票登録</a>
-        <a href="/past_landings/" class="nav-btn active">過去水揚げ</a>
-        <a href="/data_compare/" class="nav-btn">売買仕切書比較</a>
-        <a href="/fish_code_list" class="nav-btn">魚種コード</a>
-        <a href="/gyoba" class="nav-btn">漁場名</a>
-        <a href="/buyers" class="nav-btn">買受人</a>
-    </header>
-    <h2>漁獲量グラフ</h2>
-    
-    <div class="filter-section">
-        <form action="/fish_graph" method="get" id="search-form">
-            <div class="date-controls-block">
-                <div class="date-row">
-                    <label>期間(開始):</label>
-                    <input type="date" name="start_date" value="{{ start_date }}" id="start_date">
-                    <label>期間(終了):</label>
-                    <input type="date" name="end_date" value="{{ end_date }}" id="end_date">
-                </div>
-                <div class="date-shortcut-buttons">
-                    <button type="button" class="date-button" id="this-month">今月</button>
-                    <button type="button" class="date-button" id="last-month">先月</button>
-                    <button type="button" class="date-button" id="today">日付指定</button>
-                    <div id="year-buttons" style="display:contents;"></div>
-                </div>
-                <div class="calendar-container">
-                    <div class="calendar">
-                        <div class="calendar-header">
-                            <button id="prevMonth" type="button">&lt;</button>
-                            <h3 id="currentMonth"></h3>
-                            <button id="nextMonth" type="button">&gt;</button>
-                        </div>
-                        <div class="calendar-weekdays">
-                            <div>日</div><div>月</div><div>火</div><div>水</div>
-                            <div>木</div><div>金</div><div>土</div>
-                        </div>
-                        <div class="calendar-days" id="calendarDays"></div>
+        .filter-item { flex-direction: column; }
+        .filter-label { text-align: left; min-width: unset; }
+        .chart-container { height: 40vh; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="page-title">📈 漁獲量グラフ</h2>
+
+<div class="card filter-card">
+    <form action="/fish_graph" method="get" id="search-form">
+
+        <!-- 期間選択 -->
+        <div class="date-controls-block">
+            <div class="date-row">
+                <label>期間(開始):</label>
+                <input type="date" name="start_date" value="{{ start_date }}" id="start_date">
+                <label>期間(終了):</label>
+                <input type="date" name="end_date" value="{{ end_date }}" id="end_date">
+            </div>
+            <div class="date-shortcut-buttons">
+                <button type="button" class="date-btn" id="this-month">今月</button>
+                <button type="button" class="date-btn" id="last-month">先月</button>
+                <button type="button" class="date-btn" id="today-btn">日付指定</button>
+                <div id="year-buttons" style="display:contents;"></div>
+            </div>
+
+            <!-- カレンダー -->
+            <div class="calendar-container">
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <button id="prevMonth" type="button">&lt;</button>
+                        <h3 id="currentMonth"></h3>
+                        <button id="nextMonth" type="button">&gt;</button>
                     </div>
+                    <div class="calendar-weekdays">
+                        <div>日</div><div>月</div><div>火</div><div>水</div>
+                        <div>木</div><div>金</div><div>土</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays"></div>
                 </div>
             </div>
-            <div class="filter-item" style="align-items: flex-start;">
-                <label class="filter-label">魚種:</label>
-                <div class="fish-select-wrapper">
-                    <input type="text" id="fish-search" class="fish-search-input" placeholder="魚種名で絞り込み...">
-                    <select name="fish_code" id="fish-code-select" multiple>
-                        {% for code, name in fish_types %}
-                        <option value="{{ code }}" {% if code in selected_fish_codes %}selected{% endif %}>{{ code }} - {{ name }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="fish-select-toolbar">
-                        <div class="fish-select-hint">Ctrl(Mac:⌘)+クリックで複数選択　未選択=全魚種</div>
-                        <button type="button" class="fish-clear-btn" id="fish-clear-btn">選択解除</button>
-                    </div>
-                </div>
-            </div>
-            <div class="filter-item">
-                <label class="filter-label">データタイプ:</label>
-                <select name="data_type" id="data-type-select">
-                    <option value="weight" {% if data_type == 'weight' %}selected{% endif %}>重量(kg)</option>
-                    <option value="quantity" {% if data_type == 'quantity' %}selected{% endif %}>尾数</option>
-                    <option value="amount" {% if data_type == 'amount' %}selected{% endif %}>金額(円)</option>
+        </div>
+
+        <!-- 魚種選択 -->
+        <div class="filter-item" style="align-items:flex-start;">
+            <label class="filter-label">魚種:</label>
+            <div class="fish-select-wrapper">
+                <input type="text" id="fish-search" class="fish-search-input"
+                       placeholder="魚種名で絞り込み...">
+                <select name="fish_code" id="fish-code-select" multiple>
+                    {% for code, name in fish_types %}
+                    <option value="{{ code }}"
+                        {% if code in selected_fish_codes %}selected{% endif %}>
+                        {{ code }} - {{ name }}
+                    </option>
+                    {% endfor %}
                 </select>
+                <div class="fish-select-toolbar">
+                    <div class="fish-select-hint">
+                        Ctrl(Mac:⌘)+クリックで複数選択　スマホは長押しで複数選択可
+                    </div>
+                    <button type="button" class="fish-clear-btn" id="fish-clear-btn">選択解除</button>
+                </div>
             </div>
-            <div class="button-container">
-                <a href="/past_landings/" class="search-button">一覧に戻る</a>
-                <button type="submit" class="search-button" style="margin-left: 20px;">表示更新</button>
-            </div>
-        </form>
-    </div>
-    
-    <div class="container">
-        {% if has_data %}
-        <div class="chart-container">
-            <canvas id="fishChart"></canvas>
         </div>
-        {% else %}
-        <div class="no-data">
-            この条件に該当するデータはありません。検索条件を変更してください。
+
+        <!-- データタイプ選択 -->
+        <div class="filter-item">
+            <label class="filter-label">データ:</label>
+            <select name="data_type" id="data-type-select">
+                <option value="weight"   {% if data_type == 'weight'   %}selected{% endif %}>重量(kg)</option>
+                <option value="quantity" {% if data_type == 'quantity' %}selected{% endif %}>尾数</option>
+                <option value="amount"   {% if data_type == 'amount'   %}selected{% endif %}>金額(円)</option>
+            </select>
         </div>
-        {% endif %}
-    </div>
-    
+
+        <div class="btn-row">
+            <a href="/past_landings/" class="btn">← 一覧に戻る</a>
+            <button type="submit" class="btn btn-primary">📊 表示更新</button>
+        </div>
+    </form>
+</div>
+
+<!-- グラフ表示 -->
+<div class="card chart-card">
     {% if has_data %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Jinja2の変数をJavaScript変数として定義
-            // @ts-ignore - テンプレート変数
-            const chartLabels = {{ dates|tojson }};
-            // @ts-ignore - テンプレート変数
-            const chartDatasets = {{ datasets|tojson }};
-            const chartTitle = "{{ graph_title }}";
-            const yAxisLabel = "{{ y_axis_label }}";
-            
-            // Chart.jsでグラフを描画
-            const ctx = document.getElementById('fishChart').getContext('2d');
-            const fishChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: chartDatasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: chartTitle,
-                            font: {
-                                size: 16
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                boxWidth: 12,
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: '日付'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: yAxisLabel
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
+    <div class="chart-container">
+        <canvas id="fishChart"></canvas>
+    </div>
+    {% else %}
+    <div class="no-data">
+        この条件に該当するデータはありません。検索条件を変更してください。
+    </div>
     {% endif %}
+</div>
+{% endblock %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const startDateInput = document.getElementById('start_date');
-            const endDateInput = document.getElementById('end_date');
+{% block scripts %}
+{% if has_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var chartLabels   = {{ dates|tojson }};
+    var chartDatasets = {{ datasets|tojson }};
+    var chartTitle    = "{{ graph_title }}";
+    var yAxisLabel    = "{{ y_axis_label }}";
 
-            // デフォルト日付（未設定時のみ）
-            if (!startDateInput.value) {
-                const today = new Date();
-                startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
-            }
-            if (!endDateInput.value) {
-                endDateInput.value = formatDate(new Date());
-            }
-
-            // 年ボタンを動的生成（5年前〜今年）
-            const yearButtonsContainer = document.getElementById('year-buttons');
-            const thisYear = new Date().getFullYear();
-            for (let y = thisYear - 4; y <= thisYear; y++) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'date-button year-button';
-                btn.textContent = `${y}年`;
-                btn.dataset.year = y;
-                btn.addEventListener('click', function() {
-                    const yr = parseInt(this.dataset.year);
-                    startDateInput.value = `${yr}-01-01`;
-                    endDateInput.value = `${yr}-12-31`;
-                    document.querySelector('.calendar-container').style.display = 'none';
-                });
-                yearButtonsContainer.appendChild(btn);
-            }
-
-            // 今月ボタン
-            document.getElementById('this-month').addEventListener('click', function() {
-                const today = new Date();
-                startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
-                endDateInput.value = formatDate(today);
-                document.querySelector('.calendar-container').style.display = 'none';
-            });
-
-            // 先月ボタン
-            document.getElementById('last-month').addEventListener('click', function() {
-                const today = new Date();
-                startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-                endDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 0));
-                document.querySelector('.calendar-container').style.display = 'none';
-            });
-
-            // 日付指定ボタン（カレンダー表示）
-            document.getElementById('today').addEventListener('click', function() {
-                document.querySelector('.calendar-container').style.display = 'flex';
-            });
-
-            // カレンダー
-            const calendarDays = document.getElementById('calendarDays');
-            const currentMonthElement = document.getElementById('currentMonth');
-            let currentDate = new Date();
-            let selectedDate = null;
-
-            renderCalendar(currentDate);
-
-            document.getElementById('prevMonth').addEventListener('click', function() {
-                currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-                renderCalendar(currentDate);
-            });
-            document.getElementById('nextMonth').addEventListener('click', function() {
-                currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-                renderCalendar(currentDate);
-            });
-
-            function renderCalendar(date) {
-                const year = date.getFullYear();
-                const month = date.getMonth();
-                currentMonthElement.textContent = `${year}年 ${month + 1}月`;
-                calendarDays.innerHTML = '';
-
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0);
-                const firstDayOfWeek = firstDay.getDay();
-                const prevMonthLastDay = new Date(year, month, 0).getDate();
-
-                for (let i = 0; i < firstDayOfWeek; i++) {
-                    const d = document.createElement('div');
-                    d.classList.add('calendar-day', 'other-month');
-                    d.textContent = prevMonthLastDay - firstDayOfWeek + i + 1;
-                    calendarDays.appendChild(d);
+    var ctx = document.getElementById('fishChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: chartLabels, datasets: chartDatasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                title: {
+                    display: true, text: chartTitle,
+                    font: { size: 16 }
+                },
+                tooltip: { mode: 'index', intersect: false },
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { size: 11 } }
                 }
+            },
+            scales: {
+                x: { title: { display: true, text: '日付' } },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: yAxisLabel },
+                    ticks: {
+                        callback: function(v) { return v.toLocaleString(); }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
 
-                const today = new Date();
-                for (let i = 1; i <= lastDay.getDate(); i++) {
-                    const d = document.createElement('div');
-                    d.classList.add('calendar-day');
-                    d.textContent = i;
-                    if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === i) {
-                        d.classList.add('today');
-                    }
-                    if (selectedDate && selectedDate.getFullYear() === year && selectedDate.getMonth() === month && selectedDate.getDate() === i) {
-                        d.classList.add('selected');
-                    }
-                    d.addEventListener('click', function() {
-                        document.querySelectorAll('.calendar-day.selected').forEach(function(el) { el.classList.remove('selected'); });
-                        d.classList.add('selected');
-                        selectedDate = new Date(year, month, i);
-                        const formatted = formatDate(selectedDate);
-                        startDateInput.value = formatted;
-                        endDateInput.value = formatted;
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var startDateInput = document.getElementById('start_date');
+    var endDateInput   = document.getElementById('end_date');
+    var fishCodeSelect = document.getElementById('fish-code-select');
+    var fishSearch     = document.getElementById('fish-search');
+
+    /* デフォルト日付 */
+    if (!startDateInput.value) {
+        var today = new Date();
+        startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    }
+    if (!endDateInput.value) {
+        endDateInput.value = formatDate(new Date());
+    }
+
+    /* 魚種インクリメンタル検索 */
+    fishSearch.addEventListener('input', function() {
+        var kw = this.value.trim().toLowerCase();
+        Array.from(fishCodeSelect.options).forEach(function(opt) {
+            opt.style.display = opt.textContent.toLowerCase().includes(kw) ? '' : 'none';
+        });
+    });
+
+    /* 選択解除 */
+    document.getElementById('fish-clear-btn').addEventListener('click', function() {
+        Array.from(fishCodeSelect.options).forEach(function(opt) { opt.selected = false; });
+    });
+
+    /* 年ボタン動的生成 */
+    var yearBtns = document.getElementById('year-buttons');
+    var thisYear = new Date().getFullYear();
+    for (var y = thisYear - 4; y <= thisYear; y++) {
+        (function(yr) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'date-btn year-btn';
+            btn.textContent = yr + '年';
+            btn.addEventListener('click', function() {
+                startDateInput.value = yr + '-01-01';
+                endDateInput.value   = yr + '-12-31';
+                document.querySelector('.calendar-container').style.display = 'none';
+            });
+            yearBtns.appendChild(btn);
+        })(y);
+    }
+
+    /* 今月 */
+    document.getElementById('this-month').addEventListener('click', function() {
+        var today = new Date();
+        startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        endDateInput.value   = formatDate(today);
+        document.querySelector('.calendar-container').style.display = 'none';
+    });
+
+    /* 先月 */
+    document.getElementById('last-month').addEventListener('click', function() {
+        var today = new Date();
+        startDateInput.value = formatDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+        endDateInput.value   = formatDate(new Date(today.getFullYear(), today.getMonth(), 0));
+        document.querySelector('.calendar-container').style.display = 'none';
+    });
+
+    /* 日付指定 */
+    document.getElementById('today-btn').addEventListener('click', function() {
+        document.querySelector('.calendar-container').style.display = 'flex';
+    });
+
+    /* カレンダー */
+    var calendarDays    = document.getElementById('calendarDays');
+    var currentMonthEl  = document.getElementById('currentMonth');
+    var currentCalDate  = new Date();
+    var selectedCalDate = null;
+
+    renderCalendar(currentCalDate);
+    document.getElementById('prevMonth').addEventListener('click', function() {
+        currentCalDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() - 1, 1);
+        renderCalendar(currentCalDate);
+    });
+    document.getElementById('nextMonth').addEventListener('click', function() {
+        currentCalDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 1);
+        renderCalendar(currentCalDate);
+    });
+
+    function renderCalendar(date) {
+        var year  = date.getFullYear();
+        var month = date.getMonth();
+        currentMonthEl.textContent = year + '年 ' + (month + 1) + '月';
+        calendarDays.innerHTML = '';
+
+        var first    = new Date(year, month, 1);
+        var last     = new Date(year, month + 1, 0);
+        var startDay = first.getDay();
+        var prevLast = new Date(year, month, 0).getDate();
+        var today    = new Date();
+
+        for (var i = 0; i < startDay; i++) {
+            var d = document.createElement('div');
+            d.className = 'calendar-day other-month';
+            d.textContent = prevLast - startDay + i + 1;
+            calendarDays.appendChild(d);
+        }
+        for (var i = 1; i <= last.getDate(); i++) {
+            (function(day) {
+                var d = document.createElement('div');
+                d.className = 'calendar-day';
+                d.textContent = day;
+                if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day)
+                    d.classList.add('today');
+                d.addEventListener('click', function() {
+                    document.querySelectorAll('.calendar-day.selected').forEach(function(el) {
+                        el.classList.remove('selected');
                     });
-                    calendarDays.appendChild(d);
-                }
-
-                const remaining = 7 - (firstDayOfWeek + lastDay.getDate()) % 7;
-                if (remaining < 7) {
-                    for (let i = 1; i <= remaining; i++) {
-                        const d = document.createElement('div');
-                        d.classList.add('calendar-day', 'other-month');
-                        d.textContent = i;
-                        calendarDays.appendChild(d);
-                    }
-                }
-            }
-
-            // 入力チェック
-            document.getElementById('search-form').addEventListener('submit', function(e) {
-                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
-                    e.preventDefault();
-                    alert('終了日は開始日より後の日付を選択してください。');
-                }
-            });
-
-            function formatDate(date) {
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}`;
-            }
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fishCodeSelect = document.getElementById('fish-code-select');
-            const fishSearch = document.getElementById('fish-search');
-
-            // インクリメンタル検索
-            fishSearch.addEventListener('input', function() {
-                const keyword = this.value.trim().toLowerCase();
-                Array.from(fishCodeSelect.options).forEach(function(opt) {
-                    opt.style.display = opt.textContent.toLowerCase().includes(keyword) ? '' : 'none';
+                    d.classList.add('selected');
+                    selectedCalDate = new Date(year, month, day);
+                    var fd = formatDate(selectedCalDate);
+                    startDateInput.value = fd;
+                    endDateInput.value   = fd;
                 });
-            });
+                calendarDays.appendChild(d);
+            })(i);
+        }
+        var remain = 7 - (startDay + last.getDate()) % 7;
+        if (remain < 7) {
+            for (var i = 1; i <= remain; i++) {
+                var d = document.createElement('div');
+                d.className = 'calendar-day other-month';
+                d.textContent = i;
+                calendarDays.appendChild(d);
+            }
+        }
+    }
 
-            // 選択解除ボタン
-            document.getElementById('fish-clear-btn').addEventListener('click', function() {
-                Array.from(fishCodeSelect.options).forEach(function(opt) { opt.selected = false; });
-            });
-        });
-    </script>
-</body>
-</html> 
+    /* フォームバリデーション */
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+            e.preventDefault();
+            alert('終了日は開始日より後の日付を選択してください。');
+        }
+    });
+
+    function formatDate(date) {
+        var y  = date.getFullYear();
+        var m  = String(date.getMonth() + 1).padStart(2, '0');
+        var dd = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + dd;
+    }
+});
+</script>
+{% endblock %}

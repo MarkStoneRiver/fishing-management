@@ -1,72 +1,132 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>漁獲管理システム</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            padding: 40px;
+{% extends "layout.html" %}
+{% block title %}漁獲管理システム{% endblock %}
+
+{% block head %}
+<style>
+    .home-hero {
+        text-align: center;
+        padding: 30px 0 10px 0;
+    }
+
+    .home-hero h1 {
+        font-size: 26px;
+        color: var(--color-text);
+        margin: 0 0 8px 0;
+    }
+
+    .home-hero .company-name {
+        font-size: 16px;
+        color: var(--color-text-light);
+        margin: 0 0 30px 0;
+    }
+
+    .home-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        max-width: 480px;
+        margin: 0 auto 30px auto;
+    }
+
+    .home-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 12px;
+        font-size: 16px;
+        font-weight: bold;
+        border: 2px solid var(--color-border);
+        background-color: var(--color-white);
+        color: var(--color-text);
+        text-decoration: none;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        transition: background-color 0.15s, transform 0.1s;
+        text-align: center;
+    }
+
+    .home-btn:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-1px);
+    }
+
+    .home-btn.primary {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #fff;
+    }
+
+    .home-btn.primary:hover {
+        background-color: var(--color-primary-dk);
+    }
+
+    .home-section-title {
+        text-align: center;
+        font-size: 13px;
+        color: var(--color-text-light);
+        margin: 0 0 10px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .home-sub-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+
+    .home-sub-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 8px;
+        font-size: 14px;
+        border: 1px solid var(--color-border);
+        background-color: var(--color-white);
+        color: var(--color-text);
+        text-decoration: none;
+        border-radius: var(--radius);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: background-color 0.15s;
+        text-align: center;
+    }
+
+    .home-sub-btn:hover {
+        background-color: #f0f0f0;
+    }
+
+    @media (max-width: 480px) {
+        .home-grid {
+            grid-template-columns: 1fr;
         }
-        h1 {
-            margin-bottom: 40px;
+        .home-sub-grid {
+            grid-template-columns: 1fr;
         }
-        .button {
-            display: block;
-            width: 250px;
-            margin: 15px auto;
-            padding: 12px;
-            font-size: 18px;
-            border: 2px solid #333;
-            background-color: #fff;
-            text-decoration: none;
-            color: #000;
-            border-radius: 8px;
-        }
-        .button:hover {
-            background-color: #f0f0f0;
-        }
-        .small-button {
-            display: block;
-            width: 180px;
-            margin: 15px auto;
-            padding: 10px 20px;
-            font-size: 16px;
-            border: 2px solid #333;
-            background-color: #fff;
-            text-decoration: none;
-            color: #000;
-            border-radius: 8px;
-        }
-        .small-button:hover {
-            background-color: #f0f0f0;
-        }
-        .bottom-buttons {
-            margin-top: 60px;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-hero">
     <h1>漁獲管理システム</h1>
     {% if company_name %}
-    <h2>登録された漁場名: {{ company_name }}</h2>
+    <p class="company-name">{{ company_name }}</p>
     {% endif %}
+</div>
 
-    <div class="button-container">
-        <a href="/fish_receipt/" class="button">伝票登録</a>
-        <a href="/past_landings/" class="button">過去水揚げ</a>
-        <a href="/data_compare/" class="button">売買仕切書比較画面</a>
-    </div>
+<div class="home-grid">
+    <a href="/fish_receipt/" class="home-btn primary">📋 伝票登録</a>
+    <a href="/past_landings/" class="home-btn primary">📊 過去水揚げ</a>
+    <a href="/data_compare/" class="home-btn">📄 売買仕切書比較</a>
+    <a href="/chat" class="home-btn">🤖 AIチャット</a>
+</div>
 
-    
-
-    <div class="bottom-buttons">
-        <a href="/fish_code_list" class="button">魚種コード</a>
-        <a href="/gyoba" class="button">漁場名</a>
-        <a href="/buyers" class="button">買受人</a>
-        <a href="/chat" class="button">AIチャット</a>
-    </div>
-</body>
-</html>
+<p class="home-section-title">マスタ管理</p>
+<div class="home-sub-grid">
+    <a href="/fish_code_list" class="home-sub-btn">🐟 魚種コード</a>
+    <a href="/gyoba" class="home-sub-btn">🏢 漁場名</a>
+    <a href="/buyers" class="home-sub-btn">👤 買受人</a>
+</div>
+{% endblock %}

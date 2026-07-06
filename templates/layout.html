@@ -4,97 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}漁獲量管理システム{% endblock %}</title>
-    <style>
-        body {
-            font-family: 'Meiryo', 'Hiragino Kaku Gothic Pro', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-        }
-        
-        .navbar {
-            background-color: #333;
-            overflow: hidden;
-            color: white;
-        }
-        
-        .navbar a {
-            float: left;
-            display: block;
-            color: white;
-            text-align: center;
-            padding: 14px 16px;
-            text-decoration: none;
-        }
-        
-        .navbar a:hover {
-            background-color: #444;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-        
-        .footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 10px 0;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-        }
-        
-        /* 共通スタイル */
-        .btn {
-            display: inline-block;
-            padding: 8px 12px;
-            margin: 5px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        
-        .btn:hover {
-            background-color: #45a049;
-        }
-        
-        .btn-secondary {
-            background-color: #f1f1f1;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #e7e7e7;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
-    <div class="navbar">
-        <a href="/">ホーム</a>
-        <a href="/fish_receipt">伝票登録</a>
-        <a href="/fish_code_list">魚種コード</a>
-        <a href="/receipt_upload">売買仕切書アップロード</a>
-        <a href="/past_landings">過去水揚げ</a>
-        <a href="/chat">AIチャット</a>
-    </div>
-    
-    <div class="container">
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="navbar-brand">🐟 漁獲管理</a>
+            <button class="hamburger" id="hamburger-btn" aria-label="メニュー">&#9776;</button>
+            <ul class="navbar-links" id="navbar-links">
+                <li><a href="/" {% if active_page == 'home' %}class="active"{% endif %}>ホーム</a></li>
+                <li><a href="/fish_receipt/" {% if active_page == 'fish_receipt' %}class="active"{% endif %}>伝票登録</a></li>
+                <li><a href="/past_landings/" {% if active_page == 'past_landings' %}class="active"{% endif %}>過去水揚げ</a></li>
+                <li><a href="/data_compare/" {% if active_page == 'data_compare' %}class="active"{% endif %}>売買仕切書比較</a></li>
+                <li><a href="/fish_code_list" {% if active_page == 'fish_code_list' %}class="active"{% endif %}>魚種コード</a></li>
+                <li><a href="/gyoba" {% if active_page == 'gyoba' %}class="active"{% endif %}>漁場名</a></li>
+                <li><a href="/buyers" {% if active_page == 'buyers' %}class="active"{% endif %}>買受人</a></li>
+                <li><a href="/chat" {% if active_page == 'chat' %}class="active"{% endif %}>AIチャット</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-container">
         {% block content %}{% endblock %}
     </div>
-    
+
     <div class="footer">
-        <p>&copy; 2023 漁獲量管理システム</p>
+        <p>&copy; 漁獲量管理システム</p>
     </div>
-    
-    <!-- JavaScriptブロック -->
+
+    <script>
+        // ハンバーガーメニューの開閉
+        (function() {
+            var btn = document.getElementById('hamburger-btn');
+            var links = document.getElementById('navbar-links');
+            if (btn && links) {
+                btn.addEventListener('click', function() {
+                    links.classList.toggle('open');
+                    btn.setAttribute('aria-expanded', links.classList.contains('open'));
+                });
+                // ナビリンクをタップしたらメニューを閉じる
+                links.querySelectorAll('a').forEach(function(a) {
+                    a.addEventListener('click', function() {
+                        links.classList.remove('open');
+                    });
+                });
+            }
+        })();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+</html>

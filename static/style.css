@@ -1,0 +1,373 @@
+/* =====================================================
+   style.css - 漁獲管理システム 共通スタイルシート
+   ===================================================== */
+
+/* --- CSS変数（カラーパレット） --- */
+:root {
+  --color-primary:     #2196F3;
+  --color-primary-dk:  #0b7dda;
+  --color-danger:      #ff4444;
+  --color-danger-bg:   #ffeeee;
+  --color-success:     #4CAF50;
+  --color-success-bg:  #E8F5E9;
+  --color-bg:          #f5f5f5;
+  --color-white:       #ffffff;
+  --color-border:      #ddd;
+  --color-text:        #333;
+  --color-text-light:  #666;
+  --color-nav-bg:      #2c3e50;
+  --color-nav-hover:   #34495e;
+  --radius:            8px;
+  --shadow:            0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* --- リセット & ベース --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Meiryo', 'Hiragino Kaku Gothic Pro', 'Yu Gothic', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* --- ナビゲーションバー --- */
+.navbar {
+  background-color: var(--color-nav-bg);
+  position: relative;
+  z-index: 1000;
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.navbar-brand {
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 14px 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-links a {
+  display: block;
+  color: #ccc;
+  text-align: center;
+  padding: 14px 12px;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+  border-radius: 4px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.navbar-links a:hover,
+.navbar-links a.active {
+  background-color: var(--color-nav-hover);
+  color: #fff;
+}
+
+/* ハンバーガーボタン（スマホ時のみ表示） */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  padding: 10px 0;
+  line-height: 1;
+}
+
+/* スマホ時のナビゲーション */
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+
+  .navbar-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0;
+    padding: 8px 0;
+    border-top: 1px solid #3d5166;
+  }
+
+  .navbar-links.open {
+    display: flex;
+  }
+
+  .navbar-links a {
+    padding: 12px 20px;
+    text-align: left;
+    border-radius: 0;
+    font-size: 15px;
+  }
+
+  .navbar-inner {
+    flex-wrap: wrap;
+    padding: 0 12px;
+  }
+
+  .navbar-brand {
+    padding: 12px 0;
+  }
+}
+
+/* --- ページコンテナ --- */
+.page-container {
+  max-width: 1200px;
+  margin: 24px auto 80px auto;
+  padding: 0 16px;
+}
+
+/* --- ページタイトル --- */
+.page-title {
+  text-align: center;
+  color: var(--color-text);
+  margin: 0 0 24px 0;
+  font-size: 22px;
+}
+
+/* --- カード（白背景ブロック） --- */
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* --- ボタン共通 --- */
+.btn {
+  display: inline-block;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-family: inherit;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-text);
+  background-color: var(--color-white);
+  color: var(--color-text);
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.15s;
+  -webkit-appearance: none;
+}
+
+.btn:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dk);
+  border-color: var(--color-primary-dk);
+}
+
+.btn-danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-bg);
+}
+
+/* スマホでボタンを大きく */
+@media (max-width: 768px) {
+  .btn {
+    padding: 12px 20px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+}
+
+/* --- フォーム共通 --- */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="month"],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="month"],
+  select,
+  textarea {
+    font-size: 16px; /* スマホでズームイン防止（16px以上必要） */
+    min-height: 44px;
+    padding: 10px 8px;
+  }
+}
+
+/* --- テーブル横スクロールラッパー --- */
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper table {
+  min-width: 600px;
+}
+
+/* --- アラートメッセージ --- */
+.alert {
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.alert-success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.alert-error {
+  background-color: #ffebee;
+  color: #f44336;
+}
+
+/* --- フッター --- */
+.footer {
+  background-color: var(--color-nav-bg);
+  color: #aaa;
+  text-align: center;
+  padding: 12px 0;
+  font-size: 12px;
+  margin-top: 40px;
+}
+
+/* --- ナビゲーションヘッダー（各ページ既存スタイル互換） --- */
+/* 各ページ独自のheaderタグ内のnav-btnも共通スタイルで統一 */
+header {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--color-nav-bg);
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+header a.nav-btn,
+.nav-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  text-decoration: none;
+  background-color: rgba(255,255,255,0.12);
+  color: #eee;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+
+header a.nav-btn:hover,
+.nav-btn:hover {
+  background-color: var(--color-nav-hover);
+  color: #fff;
+}
+
+header a.nav-btn.active,
+.nav-btn.active {
+  background-color: var(--color-primary);
+  color: #fff;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  header {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  header a.nav-btn,
+  .nav-btn {
+    font-size: 13px;
+    padding: 8px 10px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* --- カメラ撮影ボタン（伝票登録・スマホ専用） --- */
+.camera-btn-wrapper {
+  display: none; /* PCでは非表示 */
+  margin: 12px 0;
+}
+
+.camera-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background-color: #1976D2;
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--shadow);
+  transition: background-color 0.15s;
+}
+
+.camera-btn:hover {
+  background-color: #1565C0;
+}
+
+@media (max-width: 768px) {
+  .camera-btn-wrapper {
+    display: block; /* スマホでのみ表示 */
+  }
+}
