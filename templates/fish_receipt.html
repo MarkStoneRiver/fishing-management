@@ -275,6 +275,9 @@
 {% endif %}
 
 <form method="post" id="receipt-form">
+    {% if edit_mode and receipt_id %}
+    <input type="hidden" name="receipt_id" value="{{ receipt_id }}">
+    {% endif %}
 
     <!-- ヘッダーセクション -->
     <div class="card receipt-header-card">
@@ -324,7 +327,7 @@
                     </tr>
                 </thead>
                 <tbody id="detail-rows">
-                    {% if edit_mode and details %}
+                    {% if (edit_mode or ocr_prefilled) and details %}
                         {% for detail in details %}
                         <tr>
                             <td>{{ loop.index }}</td>
@@ -364,7 +367,7 @@
 
     <div class="btn-area">
         <button type="submit" class="submit-btn" id="submit-btn">
-            {% if edit_mode %}更新{% else %}登録{% endif %}
+            {% if edit_mode and not ocr_prefilled %}更新{% else %}登録{% endif %}
         </button>
         <button type="button" class="cancel-btn" onclick="location.href='/'">キャンセル</button>
     </div>
@@ -464,15 +467,31 @@
             input.addEventListener('keydown', function(e) {
                 if (e.key !== 'Enter') return;
                 e.preventDefault();
-                const currentRow = input.closest('tr');
-                const lastRow = document.querySelector('#detail-rows tr:last-child');
+
+                var currentRow = input.closest('tr');
+                var isDestination = input.name && input.name.startsWith('destination_');
+
+                if (isDestination) {
+                    // 売先でEnter → 次行の魚種コードへジャンプ（または新行追加）
+                    var nextRow = currentRow.nextElementSibling;
+                    if (nextRow) {
+                        var nextFishCode = nextRow.querySelector('input[name^="fish_code_"]');
+                        if (nextFishCode) { nextFishCode.focus(); return; }
+                    } else {
+                        addRow();
+                        return;
+                    }
+                }
+
+                // それ以外: 同じ列の次行へ
+                var lastRow = document.querySelector('#detail-rows tr:last-child');
                 if (currentRow === lastRow) {
                     addRow();
                 } else {
-                    const cellIndex = Array.from(currentRow.cells).findIndex(function(c) { return c.contains(input); });
-                    const nextRow = currentRow.nextElementSibling;
-                    if (nextRow) {
-                        const nextInput = nextRow.cells[cellIndex] && nextRow.cells[cellIndex].querySelector('input');
+                    var cellIndex = Array.from(currentRow.cells).findIndex(function(c) { return c.contains(input); });
+                    var nextRow2 = currentRow.nextElementSibling;
+                    if (nextRow2) {
+                        var nextInput = nextRow2.cells[cellIndex] && nextRow2.cells[cellIndex].querySelector('input');
                         if (nextInput) nextInput.focus();
                     }
                 }
@@ -568,15 +587,67 @@
         const dp = urlParams.get('receipt_date');
         if (dp) document.getElementById('receipt_date').value = dp;
 
-        // カメラ撮影後の処理（将来のOCR連携用フック）
-        const cameraInput = document.getElementById('camera-input');
+        // カメラ撮影後にOCRエンドポイントへ送信
+        var cameraInput = document.getElementById('camera-input');
         if (cameraInput) {
-            cameraInput.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                    // TODO: Claude API連携フェーズで画像をOCR処理する
-                    alert('撮影しました。\n今後のアップデートで自動読み取り機能を追加予定です。');
-                }
+            cameraInput.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+
+                // プレビュー用に画像を sessionStorage に保存（確認画面で表示）
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    sessionStorage.setItem('ocr_image_preview', e.target.result);
+                };
+                reader.readAsDataURL(file);
+
+                // OCRローディング画面を表示
+                showOcrLoading(true);
+
+                var formData = new FormData();
+                formData.append('image', file);
+
+                fetch('/fish_receipt/ocr', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.status === 'ok' && data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        showOcrLoading(false);
+                        alert('OCRエラー: ' + (data.error || '不明なエラーが発生しました'));
+                    }
+                })
+                .catch(function (err) {
+                    showOcrLoading(false);
+                    alert('通信エラーが発生しました。ネットワーク接続を確認してください。');
+                });
             });
+        }
+
+        function showOcrLoading(show) {
+            var overlay = document.getElementById('ocr-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'ocr-loading-overlay';
+                overlay.innerHTML =
+                    '<div style="text-align:center;">' +
+                    '  <div style="font-size:48px; margin-bottom:16px;">🔍</div>' +
+                    '  <div style="font-size:18px; font-weight:bold; color:#fff; margin-bottom:8px;">伝票を読み取り中...</div>' +
+                    '  <div style="font-size:14px; color:#cce5ff;">Claude AIが手書き文字を解析しています</div>' +
+                    '</div>';
+                Object.assign(overlay.style, {
+                    position: 'fixed', top: '0', left: '0',
+                    width: '100%', height: '100%',
+                    backgroundColor: 'rgba(21,101,192,0.88)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: '9999', backdropFilter: 'blur(4px)'
+                });
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = show ? 'flex' : 'none';
         }
     });
 </script>

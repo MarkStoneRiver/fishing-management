@@ -1,0 +1,356 @@
+{% extends "layout.html" %}
+{% block title %}OCR確認・修正{% endblock %}
+
+{% block head %}
+<style>
+    /* ===== レイアウト ===== */
+    .ocr-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+        align-items: start;
+    }
+
+    /* ===== 画像プレビュー ===== */
+    .image-card {
+        position: sticky;
+        top: 20px;
+    }
+    .image-card img {
+        width: 100%;
+        border-radius: var(--radius);
+        border: 1px solid var(--color-border);
+        display: block;
+    }
+    .image-card-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: var(--color-text-light);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ===== 確認フォーム ===== */
+    .review-card { width: 100%; }
+
+    .ocr-badge {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #1565C0;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 2px 8px;
+        border-radius: 20px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    /* ヘッダーフィールド */
+    .header-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group label {
+        font-size: 12px;
+        font-weight: bold;
+        color: var(--color-text-light);
+    }
+    .field-group input {
+        padding: 9px 10px;
+        border: 1.5px solid var(--color-border);
+        border-radius: 6px;
+        font-size: 15px;
+        font-family: inherit;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.15s;
+    }
+    .field-group input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+    .field-group input.modified {
+        border-color: #f59e0b;
+        background-color: #fffbeb;
+    }
+
+    /* ===== 明細テーブル ===== */
+    .detail-scroll { overflow-x: auto; margin-bottom: 16px; }
+    .detail-scroll table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+        font-size: 14px;
+    }
+    .detail-scroll thead th {
+        background-color: #f5f5f5;
+        padding: 8px 6px;
+        text-align: center;
+        border-bottom: 2px solid var(--color-border);
+        white-space: nowrap;
+        font-size: 12px;
+        color: var(--color-text-light);
+        font-weight: bold;
+    }
+    .detail-scroll tbody tr:nth-child(even) { background-color: #fafafa; }
+    .detail-scroll tbody td {
+        padding: 4px 4px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .detail-scroll tbody td:first-child {
+        color: var(--color-text-light);
+        font-size: 12px;
+        width: 28px;
+    }
+    .detail-scroll tbody input {
+        width: 100%;
+        padding: 6px 4px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+        text-align: center;
+        box-sizing: border-box;
+        min-width: 48px;
+        transition: border-color 0.15s, background-color 0.15s;
+    }
+    .detail-scroll tbody input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        background-color: #e3f2fd;
+    }
+    .detail-scroll tbody input.modified {
+        border-color: #f59e0b;
+        background-color: #fffbeb;
+    }
+    .detail-scroll tbody input[name*="fish_name"] { min-width: 80px; }
+    .detail-scroll tbody input[name*="fish_code"] { min-width: 56px; }
+
+    /* 空行 */
+    .row-empty td { opacity: 0.35; }
+    .row-empty input { background-color: #f9f9f9; }
+
+    /* ===== 凡例 ===== */
+    .legend {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--color-text-light);
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot {
+        width: 12px; height: 12px;
+        border-radius: 3px;
+        border: 1.5px solid;
+    }
+    .legend-dot.ocr { background: #fff; border-color: #ddd; }
+    .legend-dot.modified { background: #fffbeb; border-color: #f59e0b; }
+
+    /* ===== ボタン ===== */
+    .btn-row {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    /* スマホ */
+    @media (max-width: 768px) {
+        .ocr-wrapper { grid-template-columns: 1fr; }
+        .image-card { position: static; }
+        .header-grid { grid-template-columns: 1fr; }
+        .detail-scroll tbody input { font-size: 16px; }
+        .field-group input { font-size: 16px; }
+        .btn-row .btn { width: 100%; max-width: 340px; padding: 14px; font-size: 16px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="page-title">📋 OCR読み取り結果の確認</h2>
+
+<p style="text-align:center; color:var(--color-text-light); margin-bottom:20px; font-size:14px;">
+    読み取り結果を確認・修正してから「この内容で登録へ進む」をタップしてください。<br>
+    <span style="color:#f59e0b;">■</span> 黄色のフィールドは修正されたことを示します。
+</p>
+
+<div class="ocr-wrapper">
+
+    <!-- 左: 撮影した伝票画像 -->
+    <div class="card image-card">
+        <div class="image-card-title">📷 撮影した伝票</div>
+        <img id="slip-preview" src="" alt="伝票画像">
+        <p style="font-size:12px; color:var(--color-text-light); margin-top:8px; text-align:center;">
+            画像を確認しながら右の内容を修正できます
+        </p>
+    </div>
+
+    <!-- 右: 確認・修正フォーム -->
+    <div class="card review-card">
+        <form method="post" action="{{ url_for('fish_receipt.ocr_confirm') }}" id="review-form">
+
+            <h3 style="margin:0 0 16px 0; font-size:16px;">
+                ヘッダー情報
+                <span class="ocr-badge">Claude OCR</span>
+            </h3>
+
+            <div class="header-grid">
+                <div class="field-group">
+                    <label>荷受日</label>
+                    <input type="date" name="receipt_date"
+                           value="{{ ocr_result.receipt_date or '' }}"
+                           data-ocr="{{ ocr_result.receipt_date or '' }}"
+                           required>
+                </div>
+                <div class="field-group">
+                    <label>漁業者名</label>
+                    <input type="text" name="fisherman_name"
+                           value="{{ ocr_result.fisherman_name or '' }}"
+                           data-ocr="{{ ocr_result.fisherman_name or '' }}"
+                           placeholder="読み取り中...">
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid #eee; margin: 16px 0;">
+
+            <h3 style="margin:0 0 10px 0; font-size:16px;">明細行</h3>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot ocr"></div>
+                    <span>OCR読み取り値</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot modified"></div>
+                    <span>修正済み</span>
+                </div>
+            </div>
+
+            <div class="detail-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>魚種コード</th>
+                            <th>魚種名(補足)</th>
+                            <th>容器</th>
+                            <th>個(尾)数</th>
+                            <th>正味数量</th>
+                            <th>単価</th>
+                            <th>売先</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set details = ocr_result.details if ocr_result.details else [] %}
+                        {% for i in range(1, 21) %}
+                        {% set d = details[loop.index0] if loop.index0 < details|length else {} %}
+                        {% set is_empty = not d %}
+                        <tr class="{{ 'row-empty' if is_empty else '' }}">
+                            <td>{{ i }}</td>
+                            <td><input type="text" name="fish_code_{{ i }}"
+                                       value="{{ d.fish_code or '' }}"
+                                       data-ocr="{{ d.fish_code or '' }}"
+                                       inputmode="numeric"
+                                       placeholder="-"></td>
+                            <td><input type="text" name="fish_name_{{ i }}"
+                                       value="{{ d.fish_name or '' }}"
+                                       data-ocr="{{ d.fish_name or '' }}"
+                                       placeholder=""></td>
+                            <td><input type="text" name="container_{{ i }}"
+                                       value="{{ d.container or '' }}"
+                                       data-ocr="{{ d.container or '' }}"
+                                       inputmode="numeric"
+                                       placeholder="1"></td>
+                            <td><input type="text" name="quantity_{{ i }}"
+                                       value="{{ d.quantity or '' }}"
+                                       data-ocr="{{ d.quantity or '' }}"
+                                       inputmode="decimal"
+                                       placeholder="0"></td>
+                            <td><input type="text" name="weight_{{ i }}"
+                                       value="{{ d.weight or '' }}"
+                                       data-ocr="{{ d.weight or '' }}"
+                                       inputmode="decimal"
+                                       placeholder="0.0"></td>
+                            <td><input type="text" name="unit_price_{{ i }}"
+                                       value="{{ d.unit_price or '' }}"
+                                       data-ocr="{{ d.unit_price or '' }}"
+                                       inputmode="numeric"
+                                       placeholder="0"></td>
+                            <td><input type="text" name="destination_{{ i }}"
+                                       value="{{ d.destination or '' }}"
+                                       data-ocr="{{ d.destination or '' }}"
+                                       inputmode="numeric"
+                                       placeholder=""></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn" onclick="window.history.back()">
+                    ← 撮り直す
+                </button>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    ✅ この内容で登録へ進む
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ===== 画像プレビューを sessionStorage から復元 =====
+    var previewSrc = sessionStorage.getItem('ocr_image_preview');
+    var img = document.getElementById('slip-preview');
+    if (previewSrc) {
+        img.src = previewSrc;
+    } else {
+        img.parentElement.style.display = 'none'; // 画像なければ非表示
+    }
+
+    // ===== 修正されたフィールドをハイライト =====
+    function markModified(input) {
+        var ocr = input.getAttribute('data-ocr') || '';
+        var current = input.value || '';
+        if (ocr !== current && current !== '') {
+            input.classList.add('modified');
+        } else {
+            input.classList.remove('modified');
+        }
+    }
+
+    document.querySelectorAll('input[data-ocr]').forEach(function (input) {
+        // 初期チェック
+        markModified(input);
+        // 入力の度にチェック
+        input.addEventListener('input', function () {
+            markModified(this);
+        });
+    });
+
+    // ===== フォーム送信時の確認 =====
+    document.getElementById('review-form').addEventListener('submit', function (e) {
+        var btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.textContent = '登録中...';
+    });
+});
+</script>
+{% endblock %}

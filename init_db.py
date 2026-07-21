@@ -307,6 +307,18 @@ def init_db():
     else:
         print("ℹ️ 売先マスタは既に登録済みのためスキップしました。")
 
+    # OCR修正履歴テーブル
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ocr_corrections (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            field_name      TEXT NOT NULL,
+            ocr_value       TEXT,
+            corrected_value TEXT,
+            image_hash      TEXT,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     conn.commit()
     conn.close()
 

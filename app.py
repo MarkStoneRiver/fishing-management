@@ -14,8 +14,12 @@ from db import get_connection, DB_PATH
 import sqlite3
 import os
 import secrets
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from datetime import datetime
+
+# .env ファイルを読み込む
+load_dotenv()
 
 app = Flask(__name__)
 # セッション用のシークレットキーを設定

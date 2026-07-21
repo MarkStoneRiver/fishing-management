@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session
 from db import get_connection
 from datetime import datetime
+import json
+import ocr_service
 
 fish_receipt_bp = Blueprint('fish_receipt', __name__, url_prefix='/fish_receipt')
 
@@ -238,3 +240,121 @@ def get_fish_type_by_code(code):
         return jsonify({'name': result[0]})
     else:
         return jsonify({'error': '指定された魚種コードは登録されていません'}), 404
+
+
+# =====================================================
+# OCR 関連エンドポイント
+# =====================================================
+
+@fish_receipt_bp.route('/ocr', methods=['POST'])
+def ocr_upload():
+    """カメラ画像を受け取り Claude API で解析して確認画面へリダイレクト。"""
+    if 'image' not in request.files:
+        return jsonify({'error': '画像ファイルが見つかりません'}), 400
+
+    image_file = request.files['image']
+    if image_file.filename == '':
+        return jsonify({'error': '画像が選択されていません'}), 400
+
+    image_bytes = image_file.read()
+    if len(image_bytes) > 10 * 1024 * 1024:  # 10MB上限
+        return jsonify({'error': '画像サイズが大きすぎます（10MB以下にしてください）'}), 400
+
+    try:
+        result = ocr_service.extract_slip_data(image_bytes)
+        # セッションに OCR 結果を保存（確認画面で使用）
+        session['ocr_result'] = result
+        return jsonify({'status': 'ok', 'redirect': url_for('fish_receipt.ocr_review')})
+    except json.JSONDecodeError:
+        return jsonify({'error': 'OCR結果の解析に失敗しました。画像を撮り直してください。'}), 500
+    except Exception as e:
+        return jsonify({'error': f'OCR処理中にエラーが発生しました: {str(e)}'}), 500
+
+
+@fish_receipt_bp.route('/ocr/review', methods=['GET'])
+def ocr_review():
+    """OCR確認・修正画面を表示。"""
+    ocr_result = session.get('ocr_result')
+    if not ocr_result:
+        return redirect(url_for('fish_receipt.fish_receipt'))
+    return render_template('ocr_review.html', ocr_result=ocr_result)
+
+
+@fish_receipt_bp.route('/ocr/confirm', methods=['POST'])
+def ocr_confirm():
+    """確認・修正済みデータをセッション保存し、修正差分をDBに記録して登録画面へ。"""
+    ocr_result = session.get('ocr_result', {})
+    image_hash = ocr_result.get('image_hash', '')
+
+    # フォームから確定データを取得
+    receipt_date = request.form.get('receipt_date', '')
+    fisherman_name = request.form.get('fisherman_name', '')
+
+    confirmed_details = []
+    for i in range(1, 21):
+        fish_code = request.form.get(f'fish_code_{i}')
+        if not fish_code and not request.form.get(f'weight_{i}'):
+            continue  # 空行はスキップ
+        confirmed_details.append({
+            'fish_code':   request.form.get(f'fish_code_{i}'),
+            'fish_name':   request.form.get(f'fish_name_{i}'),
+            'container':   request.form.get(f'container_{i}'),
+            'quantity':    request.form.get(f'quantity_{i}'),
+            'weight':      request.form.get(f'weight_{i}'),
+            'unit_price':  request.form.get(f'unit_price_{i}'),
+            'destination': request.form.get(f'destination_{i}'),
+        })
+
+    confirmed_data = {
+        'receipt_date':    receipt_date,
+        'fisherman_name':  fisherman_name,
+        'details':         confirmed_details,
+    }
+
+    # 修正差分を保存（精度向上用）
+    ocr_service.save_corrections(ocr_result, confirmed_data, image_hash)
+
+    # 確定データをセッションに保存して登録画面へ
+    session['confirmed_ocr'] = confirmed_data
+    session.pop('ocr_result', None)
+
+    # 登録画面へリダイレクト（確定データはセッションから取得）
+    return redirect(url_for('fish_receipt.fish_receipt_from_ocr'))
+
+
+@fish_receipt_bp.route('/from_ocr', methods=['GET'])
+def fish_receipt_from_ocr():
+    """OCR確認後の登録画面。セッションのデータをフォームに引き渡す。"""
+    confirmed = session.pop('confirmed_ocr', None)
+    if not confirmed:
+        return redirect(url_for('fish_receipt.fish_receipt'))
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT company_name FROM companies LIMIT 1')
+    result = c.fetchone()
+    conn.close()
+    company_name = result[0] if result else ''
+
+    # details を (fish_code, fish_name, container, quantity, weight, unit_price, destination) タプルに変換
+    details = []
+    for d in confirmed.get('details', []):
+        details.append((
+            d.get('fish_code') or '',
+            d.get('fish_name') or '',
+            d.get('container') or '',
+            d.get('quantity') or '',
+            d.get('weight') or '',
+            d.get('unit_price') or '',
+            d.get('destination') or '',
+        ))
+
+    return render_template(
+        'fish_receipt.html',
+        today=confirmed.get('receipt_date', datetime.now().strftime('%Y-%m-%d')),
+        receipt_date=confirmed.get('receipt_date', ''),
+        fisherman_name=confirmed.get('fisherman_name', company_name),
+        details=details,
+        edit_mode=False,      # 新規登録モード（「登録」ボタンを表示）
+        ocr_prefilled=True,   # OCRからの遷移フラグ（明細データを表示）
+    )
