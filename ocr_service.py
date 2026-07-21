@@ -154,9 +154,10 @@ def extract_slip_data(image_bytes: bytes) -> dict:
 
     # Claude API 呼び出し（claude-3-5-haiku-20241022: コスト最適・vision対応）
     # 精度が不十分な場合は claude-3-5-sonnet-20241022 に変更を検討
+    # 精度が不十分だったので、claude-3-5-sonnet-20241022に変更した。
     client = get_client()
     message = client.messages.create(
-        model='claude-haiku-4-5-20251001',
+        model='claude-3-5-sonnet-20241022',
         max_tokens=2048,
         messages=[
             {
