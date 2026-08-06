@@ -48,31 +48,49 @@
     }
     .date-button:hover { background-color: #f0f0f0; }
 
-    /* ===== カメラボタン（スマホ専用） ===== */
+    /* ===== OCR 撮影・アップロードボタン ===== */
+    /* スマホ: カメラボタン / PC: ファイル選択 */
     .camera-btn-wrapper {
-        display: none;
+        display: none;   /* スマホでのみ表示 */
         margin: 0 0 16px 0;
     }
-    .camera-btn-label {
+    .upload-btn-wrapper {
+        display: block;  /* PCでのみ表示 */
+        margin: 0 0 16px 0;
+    }
+    .camera-btn-label, .upload-btn-label {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 10px;
         width: 100%;
-        padding: 16px;
-        background-color: #1565C0;
-        color: #fff;
+        padding: 14px 16px;
         border-radius: var(--radius);
-        font-size: 16px;
+        font-size: 15px;
         font-weight: bold;
         cursor: pointer;
         box-shadow: var(--shadow);
         transition: background-color 0.15s;
         -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+    }
+    .camera-btn-label {
+        background-color: #1565C0;
+        color: #fff;
+        font-size: 16px;
+        padding: 16px;
     }
     .camera-btn-label:active { background-color: #0D47A1; }
+    .upload-btn-label {
+        background-color: #fff;
+        color: #1565C0;
+        border: 2px solid #1565C0;
+        font-size: 15px;
+    }
+    .upload-btn-label:hover { background-color: #e3f2fd; }
     @media (max-width: 768px) {
         .camera-btn-wrapper { display: block; }
+        .upload-btn-wrapper  { display: none; }  /* スマホはカメラボタンのみ */
     }
 
     /* ===== ステータスメッセージ ===== */
@@ -289,6 +307,14 @@
             </label>
             <input type="file" id="camera-input" accept="image/*"
                    capture="environment" style="display:none">
+        </div>
+
+        <!-- ファイルアップロード（PCのみ表示） -->
+        <div class="upload-btn-wrapper">
+            <label for="upload-input" class="upload-btn-label">
+                📂&nbsp; 伝票画像を選択してOCR読み取り
+            </label>
+            <input type="file" id="upload-input" accept="image/*" style="display:none">
         </div>
 
         <div class="header-field">
@@ -558,71 +584,82 @@
 
         // 全行にEnterキー設定
         document.querySelectorAll('#detail-rows tr').forEach(attachEnterKey);
+        // ===== OCR送信共通関数 =====
+        function sendToOcr(file) {
+            // プレビュー用に画像を sessionStorage に保存
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                sessionStorage.setItem('ocr_image_preview', e.target.result);
+            };
+            reader.readAsDataURL(file);
 
-        // MutationObserver: 行追加時もEnterキー設定
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(m) {
-                m.addedNodes.forEach(function(node) {
-                    if (node.nodeName === 'TR') attachEnterKey(node);
-                });
+            showOcrLoading(true);
+
+            var formData = new FormData();
+            formData.append('image', file);
+
+            fetch('/fish_receipt/ocr', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.status === 'ok' && data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    showOcrLoading(false);
+                    alert('OCRエラー: ' + (data.error || '不明なエラーが発生しました'));
+                }
+            })
+            .catch(function () {
+                showOcrLoading(false);
+                alert('通信エラーが発生しました。ネットワーク接続を確認してください。');
             });
-        });
-        observer.observe(document.getElementById('detail-rows'), { childList: true });
+        }
 
-        // 送信ボタン
-        document.getElementById('submit-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            validateForm();
-        });
-        document.getElementById('receipt-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-        });
-
-        // 成功メッセージ自動消去
-        const sm = document.getElementById('success-msg');
-        if (sm) { setTimeout(function() { sm.style.display = 'none'; }, 3000); }
-
-        // URLパラメータ日付セット
-        const urlParams = new URLSearchParams(window.location.search);
-        const dp = urlParams.get('receipt_date');
-        if (dp) document.getElementById('receipt_date').value = dp;
-
-        // カメラ撮影後にOCRエンドポイントへ送信
+        // カメラ撮影後にOCRエンドポイントへ送信（スマホ）
         var cameraInput = document.getElementById('camera-input');
         if (cameraInput) {
             cameraInput.addEventListener('change', function () {
                 if (!this.files || !this.files[0]) return;
-                var file = this.files[0];
+                sendToOcr(this.files[0]);
+            });
+        }
 
-                // プレビュー用に画像を sessionStorage に保存（確認画面で表示）
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    sessionStorage.setItem('ocr_image_preview', e.target.result);
-                };
-                reader.readAsDataURL(file);
+        // ファイル選択後にOCRエンドポイントへ送信（PC）
+        var uploadInput = document.getElementById('upload-input');
+        if (uploadInput) {
+            uploadInput.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return;
+                sendToOcr(this.files[0]);
+            });
+        }
 
-                // OCRローディング画面を表示
-                showOcrLoading(true);
-
-                var formData = new FormData();
-                formData.append('image', file);
-
-                fetch('/fish_receipt/ocr', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(function (res) { return res.json(); })
-                .then(function (data) {
-                    if (data.status === 'ok' && data.redirect) {
-                        window.location.href = data.redirect;
-                    } else {
-                        showOcrLoading(false);
-                        alert('OCRエラー: ' + (data.error || '不明なエラーが発生しました'));
-                    }
-                })
-                .catch(function (err) {
-                    showOcrLoading(false);
-                    alert('通信エラーが発生しました。ネットワーク接続を確認してください。');
+        function showOcrLoading(show) {
+            var overlay = document.getElementById('ocr-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'ocr-loading-overlay';
+                overlay.innerHTML =
+                    '<div style="text-align:center;">' +
+                    '  <div style="font-size:48px; margin-bottom:16px;">🔍</div>' +
+                    '  <div style="font-size:18px; font-weight:bold; color:#fff; margin-bottom:8px;">伝票を読み取り中...</div>' +
+                    '  <div style="font-size:14px; color:#cce5ff;">Claude AIが手書き文字を解析しています</div>' +
+                    '</div>';
+                Object.assign(overlay.style, {
+                    position: 'fixed', top: '0', left: '0',
+                    width: '100%', height: '100%',
+                    backgroundColor: 'rgba(21,101,192,0.88)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: '9999', backdropFilter: 'blur(4px)'
+                });
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+    });
+</script>
+{% endblock %}�ーが発生しました。ネットワーク接続を確認してください。');
                 });
             });
         }
