@@ -659,33 +659,4 @@
         }
     });
 </script>
-{% endblock %}�ーが発生しました。ネットワーク接続を確認してください。');
-                });
-            });
-        }
-
-        function showOcrLoading(show) {
-            var overlay = document.getElementById('ocr-loading-overlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'ocr-loading-overlay';
-                overlay.innerHTML =
-                    '<div style="text-align:center;">' +
-                    '  <div style="font-size:48px; margin-bottom:16px;">🔍</div>' +
-                    '  <div style="font-size:18px; font-weight:bold; color:#fff; margin-bottom:8px;">伝票を読み取り中...</div>' +
-                    '  <div style="font-size:14px; color:#cce5ff;">Claude AIが手書き文字を解析しています</div>' +
-                    '</div>';
-                Object.assign(overlay.style, {
-                    position: 'fixed', top: '0', left: '0',
-                    width: '100%', height: '100%',
-                    backgroundColor: 'rgba(21,101,192,0.88)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: '9999', backdropFilter: 'blur(4px)'
-                });
-                document.body.appendChild(overlay);
-            }
-            overlay.style.display = show ? 'flex' : 'none';
-        }
-    });
-</script>
 {% endblock %}
