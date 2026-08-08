@@ -196,7 +196,7 @@ def fish_receipt():
         pass
 
     conn.close()
-    return render_template("fish_receipt.html", today=today, fisherman_name=company_name, success=success)
+    return render_template("fish_receipt.html", today=receipt_date, fisherman_name=company_name, success=success)
 
 
 @fish_receipt_bp.route("/list")
