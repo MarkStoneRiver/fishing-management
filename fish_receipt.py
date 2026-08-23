@@ -261,8 +261,18 @@ def ocr_upload():
         return jsonify({'error': '画像サイズが大きすぎます（10MB以下にしてください）'}), 400
 
     try:
-        result = ocr_service.extract_slip_data(image_bytes)
-        # セッションに OCR 結果を保存（確認画面で使用）
+        # DB登録の漁場名を取得（OCRに渡す）
+        conn2 = get_connection()
+        c2 = conn2.cursor()
+        c2.execute('SELECT company_name FROM companies LIMIT 1')
+        r2 = c2.fetchone()
+        conn2.close()
+        company_name = r2[0] if r2 else ''
+
+        result = ocr_service.extract_slip_data(image_bytes, company_name=company_name)
+        # 魚業者名はサーバー登録の漁場名で上書き（OCR読み取り不要）
+        result['fisherman_name'] = company_name
+        # セッションにOCR結果を保存（確認画面で使用）
         session['ocr_result'] = result
         return jsonify({'status': 'ok', 'redirect': url_for('fish_receipt.ocr_review')})
     except json.JSONDecodeError:
@@ -273,11 +283,19 @@ def ocr_upload():
 
 @fish_receipt_bp.route('/ocr/review', methods=['GET'])
 def ocr_review():
-    """OCR確認・修正画面を表示。"""
+    """小為認確・修正画面を表示。"""
     ocr_result = session.get('ocr_result')
     if not ocr_result:
         return redirect(url_for('fish_receipt.fish_receipt'))
-    return render_template('ocr_review.html', ocr_result=ocr_result)
+    # DB登録の漁場名を取得して着業者名を上書き
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT company_name FROM companies LIMIT 1')
+    r = c.fetchone()
+    conn.close()
+    company_name = r[0] if r else ''
+    ocr_result['fisherman_name'] = company_name
+    return render_template('ocr_review.html', ocr_result=ocr_result, company_name=company_name)
 
 
 @fish_receipt_bp.route('/ocr/confirm', methods=['POST'])

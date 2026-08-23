@@ -62,9 +62,27 @@ def _build_correction_hints():
     except Exception:
         return ''
 
+# ===== DB登録済み魚種コード一覧を取得 =====
+def _get_fish_code_list() -> str:
+    """魚種マスタからコード一覧を取得してプロンプト用の文字列を返す。"""
+    try:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute('SELECT code, name FROM fish_types ORDER BY code')
+        rows = c.fetchall()
+        conn.close()
+        if not rows:
+            return ''
+        lines = ['このシステムに登録されている魚種コードの一覧（魚種コードを読み取る際はこの一覧と照合し、最も近いコードを選んでください）:']
+        for code, name in rows:
+            lines.append(f'  {code}: {name}')
+        return '\n'.join(lines)
+    except Exception:
+        return ''
+
 
 # ===== メインOCR関数 =====
-def extract_slip_data(image_bytes: bytes) -> dict:
+def extract_slip_data(image_bytes: bytes, company_name: str = '') -> dict:
     """
     伝票画像のバイト列を受け取り、Claude APIで解析してJSONを返す。
 
@@ -106,6 +124,9 @@ def extract_slip_data(image_bytes: bytes) -> dict:
     # 修正ヒントの取得
     correction_hints = _build_correction_hints()
 
+    # DB登録済み魚種コード一覧
+    fish_code_list = _get_fish_code_list()
+
     # プロンプト組み立て
     prompt = f"""あなたは日本語の手書き鮮魚受入伝票を読み取る専門のOCRシステムです。
 
@@ -114,40 +135,55 @@ def extract_slip_data(image_bytes: bytes) -> dict:
 
 【読み取る項目】
 - 荷受日（receipt_date）: YYYY-MM-DD形式
-- 漁業者名（fisherman_name）: 氏名のみ（「様」「係」などの敬称は除外）
 - 明細行（details）: 最大20行。「-」のみの行はスキップ
 
-【明細の各フィールド】
-- fish_code: 魚種コード（数字・ハイフン含む）。「-」のみの行は行自体をスキップ。完全に空欄の場合はnull（直上行と同じ魚種を意味する）
-- fish_name: 魚種名の補足（コード横に書かれた魚種名）。なければnull
-- container: 容器番号（整数1〜9、タンクは0）。不明はnull
-- quantity: 個（尾）数（数値）。不明はnull
-- weight: 正味数量（小数可）。不明はnull
-- unit_price: 単価（整数）。不明はnull
-- destination: 売先コード（整数）。「〃」マークは直前行と同じ値。不明はnull
+【伝票の列構成（左から右の順番）】
+明細列は左から以下の順に並んでいます。列を絶対に混同しないでください:
 
-【注意事項】
-- 魚種コードが完全に空欄の行は「直上行と同じ魚種」を意味するため、fish_codeはnullで返す
-- 「々」「〃」は直前行の同フィールド値を引き継ぐ
-- 荷受日の年が元号（令和・平成など）の場合は西暦に変換
-- 魚種コードは「007」のように読めても「0O7」（文字Oではなくゼロ）の可能性を考慮
-- 手書きのため判読困難な文字はnullで返す
+  列1: 魚種コード → fish_code  （例: 20-11, 2-07）
+  列2: 魚種名補足 → fish_name  （例: スレ, 小, 大 ※魚種名ではなくメモのみ）
+  列3: 容器     → container  ★必ず3列目を読む。値は0〜9の1桁整数★
+  列4: 個（尾）数 → quantity   ★必ず4列目を読む。尾数・個数（10〜200程度の整数）★
+  列5: 数量（読み取り不要→スキップ）  ※この列は登録しない
+  列6、8: 籠・荷袋・水目（読み取り不要→スキップ）
+  列9: 正味数量   → weight     ★kg単位の重量。小数がない場合は整数で返す★
+  列10: 単価      → unit_price （例: 250, 140）
+  列11: 売先      → destination（例: 108, 107）
+
+【列の区別が特に重要な3つのフィールド】
+- container（容器）: 左から3列目。必ず1桁の整数。値は0、5（1=ポリ笥, 2=木笥, 3=うに折, 4=ハッポー, 5=バラ, 0=タンク）
+  ※上3列目。必ず3列目の値を読む（75や110などの大きな数字は容器ではなく4列目指数）
+- quantity（個尾数）: 左から4列目。魚の尾数・個数。容器列の即右隣
+  ※4列目。必ず4列目の値を読む（5列目の「数量」は読み取らない）
+- weight（正味数量）: kg単位の重量。小数あり（例: 68.5）、整数の場合は小数点不要（例: 75）
+  ※个数列より右側の列
+
+【特に重要な注意事項】
+■ 荷受日の元号変換（必ず西暦に変換すること）:
+  令和1年=2019, 令和2年=2020, 令和3年=2021, 令和4年=2022
+  令和5年=2023, 令和6年=2024, 令和7年=2025, 令和8年=2026
+  平成31年/令和元年=2019, 平成30年=2018, 平成29年=2017
+
+■ 魚種コードの読み取り（重要）:
+  - 数字とハイフンのみ。文字Oはゼロ（0）として読む
+  - 下記の登録済み魚種コード一覧と照合し、最も近いコードを選ぶ
+
+{fish_code_list}
 
 {correction_hints}
 
 【出力形式（このJSONのみ返す）】
 {{
   "receipt_date": "YYYY-MM-DD",
-  "fisherman_name": "氏名",
   "details": [
     {{
-      "fish_code": "007",
-      "fish_name": "ハマチ",
-      "container": 1,
-      "quantity": 2,
-      "weight": 23.0,
-      "unit_price": 30,
-      "destination": 137
+      "fish_code": "20-11",
+      "fish_name": "スレ",
+      "container": 5,
+      "quantity": 75,
+      "weight": 75.0,
+      "unit_price": 250,
+      "destination": 108
     }}
   ]
 }}"""
@@ -201,6 +237,12 @@ def extract_slip_data(image_bytes: bytes) -> dict:
     raw['details'] = [d for d in raw['details'] if isinstance(d, dict)]
 
     raw['image_hash'] = image_hash
+
+    # weightの整形: 小数点以下が 0 の場合は整数に変換（例: 75.0 → 75）
+    for row in raw.get('details', []):
+        w = row.get('weight')
+        if isinstance(w, float) and w == int(w):
+            row['weight'] = int(w)
 
     # 空欄の魚種コードを直上行から引き継ぐ
     _propagate_fish_codes(raw['details'])
