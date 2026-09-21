@@ -292,7 +292,7 @@
 <div class="msg-success" id="success-msg">登録しました ✓</div>
 {% endif %}
 
-<form method="post" id="receipt-form">
+<form method="post" action="{{ url_for('fish_receipt.fish_receipt') }}" id="receipt-form">
     {% if edit_mode and receipt_id %}
     <input type="hidden" name="receipt_id" value="{{ receipt_id }}">
     {% endif %}
