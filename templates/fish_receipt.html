@@ -584,6 +584,55 @@
 
         // 全行にEnterキー設定
         document.querySelectorAll('#detail-rows tr').forEach(attachEnterKey);
+
+        // ===== 新規登録時の重複明細チェック =====
+        // 同じ荷受日の伝票が既にあると明細が追加されるため、同一明細があれば確認する
+        var receiptForm = document.getElementById('receipt-form');
+        receiptForm.addEventListener('submit', function (e) {
+            if (receiptForm.querySelector('input[name="receipt_id"]')) return;  // 更新は全置換のため対象外
+            e.preventDefault();
+
+            var rows = [];
+            document.querySelectorAll('#detail-rows tr').forEach(function (tr, idx) {
+                var val = function (f) {
+                    var el = tr.querySelector('input[name^="' + f + '_"]');
+                    return el ? el.value.trim() : '';
+                };
+                if (!val('fish_code') || !val('weight') || !val('unit_price')) return;
+                rows.push({
+                    row_no: idx + 1,
+                    fish_code: val('fish_code'),
+                    fish_name: val('fish_name'),
+                    weight: val('weight'),
+                    unit_price: val('unit_price'),
+                    destination: val('destination')
+                });
+            });
+
+            fetch('/fish_receipt/check_duplicates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    receipt_date: document.getElementById('receipt_date').value,
+                    rows: rows
+                })
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var dups = data.duplicates || [];
+                if (dups.length > 0) {
+                    var list = dups.map(function (d) {
+                        return '・' + d.row_no + '行目: 魚種コード ' + d.fish_code +
+                               (d.fish_name ? ' (' + d.fish_name + ')' : '') + ' ' + d.weight + 'kg';
+                    }).join('\n');
+                    var msg = 'この荷受日の伝票に、同じ内容の明細が既に登録されています。\n\n' + list +
+                              '\n\n重複の可能性があります。このまま登録しますか？';
+                    if (!confirm(msg)) return;
+                }
+                receiptForm.submit();
+            })
+            .catch(function () { receiptForm.submit(); });  // チェック失敗時は登録を妨げない
+        });
         // ===== OCR送信共通関数 =====
         function sendToOcr(file) {
             // プレビュー用に画像を sessionStorage に保存

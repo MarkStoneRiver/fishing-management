@@ -245,6 +245,59 @@ def check_fish_code():
     return jsonify({'exists': exists})
 
 
+def _detail_key(fish_code, fish_name, weight, unit_price, destination):
+    """重複判定用のキー（魚種コード・補足・重量・単価・売先）。数値の表記ゆれを吸収する。"""
+    try:
+        code_v = str(int(str(fish_code).replace('-', '')))
+    except (TypeError, ValueError):
+        code_v = str(fish_code or '').strip()
+    try:
+        weight_v = round(float(weight), 2)
+    except (TypeError, ValueError):
+        weight_v = None
+    try:
+        price_v = int(float(unit_price))
+    except (TypeError, ValueError):
+        price_v = None
+    return (code_v, str(fish_name or '').strip(), weight_v, price_v, str(destination or '').strip())
+
+
+@fish_receipt_bp.route("/check_duplicates", methods=['POST'])
+def check_duplicates():
+    """新規登録（既存伝票への追加）前に、同じ荷受日の伝票に同一明細が既にないか確認する。"""
+    data = request.get_json(silent=True) or {}
+    receipt_date = data.get('receipt_date')
+    rows = data.get('rows') or []
+    if not receipt_date or not rows:
+        return jsonify({'duplicates': []})
+
+    conn = get_connection()
+    c = conn.cursor()
+    # 登録時の追加先と同じく、その日付の最新伝票と比較する
+    c.execute("""
+        SELECT d.fish_code, d.fish_name, d.weight, d.unit_price, d.destination
+        FROM fish_receipt_details d
+        WHERE d.receipt_id = (
+            SELECT id FROM fish_receipts WHERE receipt_date = ? ORDER BY id DESC LIMIT 1
+        )
+    """, (receipt_date,))
+    existing = {_detail_key(*r) for r in c.fetchall()}
+    conn.close()
+
+    duplicates = []
+    for row in rows:
+        key = _detail_key(row.get('fish_code'), row.get('fish_name'), row.get('weight'),
+                          row.get('unit_price'), row.get('destination'))
+        if key in existing:
+            duplicates.append({
+                'row_no': row.get('row_no'),
+                'fish_code': row.get('fish_code'),
+                'fish_name': row.get('fish_name') or '',
+                'weight': row.get('weight'),
+            })
+    return jsonify({'duplicates': duplicates})
+
+
 @fish_receipt_bp.route("/api/fish_types/<code>")
 def get_fish_type_by_code(code):
     if not code:
