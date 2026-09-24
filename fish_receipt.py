@@ -292,6 +292,10 @@ def ocr_upload():
         result = ocr_service.extract_slip_data(image_bytes, company_name=company_name)
         # 魚業者名はサーバー登録の漁場名で上書き（OCR読み取り不要）
         result['fisherman_name'] = company_name
+        # 荷受日は伝票登録画面で指定中の日付を使用（OCR読み取り結果は使わない）
+        receipt_date = request.form.get('receipt_date')
+        if receipt_date:
+            result['receipt_date'] = receipt_date
         # セッションにOCR結果を保存（確認画面で使用）
         session['ocr_result'] = result
         return jsonify({'status': 'ok', 'redirect': url_for('fish_receipt.ocr_review')})

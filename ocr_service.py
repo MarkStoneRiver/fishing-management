@@ -88,7 +88,6 @@ def extract_slip_data(image_bytes: bytes, company_name: str = '') -> dict:
 
     Returns:
         {
-          "receipt_date": "YYYY-MM-DD",
           "fisherman_name": "氏名",
           "details": [
             {
@@ -134,7 +133,6 @@ def extract_slip_data(image_bytes: bytes, company_name: str = '') -> dict:
 説明文や前置きは一切不要です。JSONだけを出力してください。
 
 【読み取る項目】
-- 荷受日（receipt_date）: YYYY-MM-DD形式
 - 明細行（details）: 最大20行。「-」のみの行はスキップ
 
 【伝票の列構成（左から右の順番）】
@@ -159,11 +157,6 @@ def extract_slip_data(image_bytes: bytes, company_name: str = '') -> dict:
   ※个数列より右側の列
 
 【特に重要な注意事項】
-■ 荷受日の元号変換（必ず西暦に変換すること）:
-  令和1年=2019, 令和2年=2020, 令和3年=2021, 令和4年=2022
-  令和5年=2023, 令和6年=2024, 令和7年=2025, 令和8年=2026
-  平成31年/令和元年=2019, 平成30年=2018, 平成29年=2017
-
 ■ 魚種コードの読み取り（重要）:
   - 数字とハイフンのみ。文字Oはゼロ（0）として読む
   - 下記の登録済み魚種コード一覧と照合し、最も近いコードを選ぶ
@@ -174,7 +167,6 @@ def extract_slip_data(image_bytes: bytes, company_name: str = '') -> dict:
 
 【出力形式（このJSONのみ返す）】
 {{
-  "receipt_date": "YYYY-MM-DD",
   "details": [
     {{
       "fish_code": "20-11",
@@ -285,7 +277,8 @@ def save_corrections(ocr_data: dict, confirmed_data: dict, image_hash: str):
     corrections = []
 
     # ヘッダー部分の比較
-    header_fields = ['receipt_date', 'fisherman_name']
+    # 荷受日は画面指定の日付を使うためOCR修正履歴の対象外
+    header_fields = ['fisherman_name']
     for field in header_fields:
         ocr_val = str(ocr_data.get(field) or '')
         confirmed_val = str(confirmed_data.get(field) or '')

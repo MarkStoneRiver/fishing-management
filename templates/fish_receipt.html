@@ -597,6 +597,8 @@
 
             var formData = new FormData();
             formData.append('image', file);
+            // 荷受日はOCRで読み取らず、画面で指定中の日付を次画面に引き継ぐ
+            formData.append('receipt_date', document.getElementById('receipt_date').value);
 
             fetch('/fish_receipt/ocr', {
                 method: 'POST',
