@@ -47,31 +47,47 @@ def fish_receipt():
                     WHERE id = ?
                 """, (receipt_date, fisherman_name, receipt_id))
                 c.execute("DELETE FROM fish_receipt_details WHERE receipt_id = ?", (receipt_id,))
+                line_offset = 0
 
             else:
-                c.execute("SELECT id FROM companies LIMIT 1")
-                company_result = c.fetchone()
-                if not company_result:
-                    conn.close()
-                    return render_template("fish_receipt.html",
-                                           error="漁場名が登録されていません",
-                                           today=receipt_date)
-
-                company_id = company_result[0]
-                today = datetime.now().strftime('%Y%m%d')
-                c.execute("SELECT MAX(receipt_no) FROM fish_receipts WHERE receipt_no LIKE ?", (f"{today}%",))
-                max_receipt_no = c.fetchone()[0]
-                sequence = int(max_receipt_no[-4:]) + 1 if max_receipt_no else 1
-                receipt_no = f"{today}{sequence:04d}"
-
+                # 同じ日付の伝票が既にあれば、新規作成せずその伝票に明細を追加する（1日1伝票）
                 c.execute("""
-                    INSERT INTO fish_receipts
-                    (receipt_no, receipt_date, company_id, fisherman_name, total_weight, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """, (receipt_no, receipt_date, company_id, fisherman_name))
-                receipt_id = c.lastrowid
+                    SELECT id FROM fish_receipts WHERE receipt_date = ?
+                    ORDER BY id DESC LIMIT 1
+                """, (receipt_date,))
+                existing = c.fetchone()
 
-            total_weight = 0
+                if existing:
+                    receipt_id = existing[0]
+                    c.execute("SELECT COALESCE(MAX(line_no), 0) FROM fish_receipt_details WHERE receipt_id = ?",
+                              (receipt_id,))
+                    line_offset = c.fetchone()[0]
+                    c.execute("UPDATE fish_receipts SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", (receipt_id,))
+
+                else:
+                    line_offset = 0
+                    c.execute("SELECT id FROM companies LIMIT 1")
+                    company_result = c.fetchone()
+                    if not company_result:
+                        conn.close()
+                        return render_template("fish_receipt.html",
+                                               error="漁場名が登録されていません",
+                                               today=receipt_date)
+
+                    company_id = company_result[0]
+                    today = datetime.now().strftime('%Y%m%d')
+                    c.execute("SELECT MAX(receipt_no) FROM fish_receipts WHERE receipt_no LIKE ?", (f"{today}%",))
+                    max_receipt_no = c.fetchone()[0]
+                    sequence = int(max_receipt_no[-4:]) + 1 if max_receipt_no else 1
+                    receipt_no = f"{today}{sequence:04d}"
+
+                    c.execute("""
+                        INSERT INTO fish_receipts
+                        (receipt_no, receipt_date, company_id, fisherman_name, total_weight, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, (receipt_no, receipt_date, company_id, fisherman_name))
+                    receipt_id = c.lastrowid
+
             for i in range(1, 101):
                 fish_code = request.form.get(f'fish_code_{i}')
                 fish_name = request.form.get(f'fish_name_{i}')
@@ -89,16 +105,20 @@ def fish_receipt():
                         container_v = container or ''
                         fish_name_v = fish_name or ''
                         destination_v = destination or ''
-                        total_weight += weight_f
                         c.execute("""
                             INSERT INTO fish_receipt_details
                             (receipt_id, line_no, fish_code, fish_name, container, quantity, weight, unit_price, destination, created_at, updated_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                        """, (receipt_id, i, fish_code, fish_name_v, container_v, quantity_f, weight_f, unit_price_i, destination_v))
+                        """, (receipt_id, line_offset + i, fish_code, fish_name_v, container_v, quantity_f, weight_f, unit_price_i, destination_v))
                     except ValueError:
                         pass
 
-            c.execute("UPDATE fish_receipts SET total_weight = ? WHERE id = ?", (total_weight, receipt_id))
+            # 既存伝票への追加にも対応するため、明細全体から総重量を再計算する
+            c.execute("""
+                UPDATE fish_receipts
+                SET total_weight = (SELECT COALESCE(SUM(weight), 0) FROM fish_receipt_details WHERE receipt_id = ?)
+                WHERE id = ?
+            """, (receipt_id, receipt_id))
             conn.commit()
 
             c.execute("""
