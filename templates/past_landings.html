@@ -67,6 +67,11 @@
         color: var(--color-primary);
     }
     .date-btn.year-btn:hover { background-color: #e3f2fd; }
+    .date-btn.season-btn {
+        border-color: #2e7d32;
+        color: #2e7d32;
+    }
+    .date-btn.season-btn:hover { background-color: #e8f5e9; }
 
     /* カレンダー */
     .calendar-container {
@@ -274,6 +279,12 @@
                 <button type="button" class="date-btn" id="today-btn">日付指定</button>
                 <div id="year-buttons" style="display:contents;"></div>
             </div>
+            <div class="date-shortcut-buttons">
+                <button type="button" class="date-btn season-btn" id="spring-btn"
+                        title="開始日の年の 5/1〜8/31 を検索">🌸 春期間</button>
+                <button type="button" class="date-btn season-btn" id="autumn-btn"
+                        title="開始日の年の 9/1〜11/30 を検索">🍁 秋期間</button>
+            </div>
 
             <!-- カレンダー -->
             <div class="calendar-container">
@@ -408,13 +419,33 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.className = 'date-btn year-btn';
             btn.textContent = yr + '年';
             btn.addEventListener('click', function() {
-                startDateInput.value = yr + '-01-01';
-                endDateInput.value   = yr + '-12-31';
-                document.querySelector('.calendar-container').style.display = 'none';
-                updateFishTypes();
+                searchPeriod(yr + '-01-01', yr + '-12-31');
             });
             yearBtns.appendChild(btn);
         })(y);
+    }
+
+    /* ===== 春期間（5/1〜8/31）・秋期間（9/1〜11/30）ボタン ===== */
+    // 対象年は現在の開始日の年（年ボタンで年を選んでから押すと、その年の期間になる）
+    function selectedYear() {
+        var y = parseInt((startDateInput.value || '').slice(0, 4), 10);
+        return isNaN(y) ? thisYear : y;
+    }
+    document.getElementById('spring-btn').addEventListener('click', function() {
+        var yr = selectedYear();
+        searchPeriod(yr + '-05-01', yr + '-08-31');
+    });
+    document.getElementById('autumn-btn').addEventListener('click', function() {
+        var yr = selectedYear();
+        searchPeriod(yr + '-09-01', yr + '-11-30');
+    });
+
+    /* ===== 期間をセットして即検索 ===== */
+    function searchPeriod(sd, ed) {
+        startDateInput.value = sd;
+        endDateInput.value   = ed;
+        document.querySelector('.calendar-container').style.display = 'none';
+        document.getElementById('search-form').submit();
     }
 
     /* ===== 今月ボタン ===== */
